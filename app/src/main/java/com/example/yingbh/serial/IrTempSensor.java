@@ -124,7 +124,7 @@ public class IrTempSensor {
         while(totalDataLen >= VALID_TEMP_LEN) {
             //匹配帧头
             if(sourceData[iStart] == header) {
-                Log.i(TAG,"iStart = " + iStart + ", totalDataLen = " + totalDataLen);
+//                Log.i(TAG,"iStart = " + iStart + ", totalDataLen = " + totalDataLen);
                 if((totalDataLen == VALID_TEMP_LEN) && (sensorMarkFlag != true)) {
                     //保存模组ID
                     sensorID[0] = sourceData[iStart+VALID_TEMP_LEN-4];
@@ -153,7 +153,7 @@ public class IrTempSensor {
 //                        Log.i(TAG,"pixel temp[" + i + "]:" + iData[m] + " " + iData[n] + "-->" + temp);
                         pixelList.add(temp);    //存入原始像素点温度
                     }
-                    Log.i(TAG,"pixelList.size = " + pixelList.size() + ", update pixel temperature!");
+//                    Log.i(TAG,"pixelList.size = " + pixelList.size() + ", update pixel temperature!");
                     bufLen = VALID_TEMP_LEN;
                 } else {
                     Log.i(TAG,"temp data error!");
