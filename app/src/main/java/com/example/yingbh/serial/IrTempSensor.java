@@ -72,14 +72,14 @@ public class IrTempSensor {
                 } catch (InterruptedException e) {
                     Log.i(TAG,"fail to delay 10ms");
                 }
-                PosUtil.setRs485Status(0);      //RS485接收模式
+//                PosUtil.setRs485Status(0);      //RS485接收模式
             }
         });
 
         //打开串口
         boolean openSerialPort = mSerialPortManager.openSerialPort(device,baudRate);
         if(openSerialPort) {
-            PosUtil.setRs485Status(0);      //RS485接收模式
+//            PosUtil.setRs485Status(0);      //RS485接收模式
             Log.i(TAG,"RS485接口初始化成功");
             return true;
         } else {
@@ -104,7 +104,7 @@ public class IrTempSensor {
      */
     public void startDataSample() {
         if(null != mSerialPortManager) {
-            PosUtil.setRs485Status(1);      //RS485发送模式
+//            PosUtil.setRs485Status(1);      //RS485发送模式
             mSerialPortManager.sendBytes(hexToByteArray(CMD_TEMP_GET));
         }
     }

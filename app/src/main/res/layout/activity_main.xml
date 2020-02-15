@@ -7,26 +7,17 @@
     tools:context=".MainActivity">
 
     <Button
-        android:id="@+id/btnStart"
+        android:id="@+id/btnSample"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginStart="128dp"
+        android:layout_marginTop="20dp"
+        android:layout_marginEnd="148dp"
+        android:layout_marginBottom="92dp"
         android:onClick="sampleData"
-        android:text="采集数据"
+        android:text="开始检测"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/btnRead" />
-
-    <Button
-        android:id="@+id/btnRead"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:onClick="displayTemp"
-        android:text="读取温度"
-        app:layout_constraintBottom_toTopOf="@+id/btnStart"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/txtTemp" />
 
@@ -34,11 +25,29 @@
         android:id="@+id/txtTemp"
         android:layout_width="87dp"
         android:layout_height="37dp"
+        android:layout_marginStart="137dp"
+        android:layout_marginTop="33dp"
+        android:layout_marginEnd="160dp"
+        android:layout_marginBottom="37dp"
         android:text="35.0"
         android:textSize="30sp"
-        app:layout_constraintBottom_toTopOf="@+id/btnRead"
+        app:layout_constraintBottom_toTopOf="@+id/btnSample"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textView" />
+
+    <TextView
+        android:id="@+id/textView"
+        android:layout_width="142dp"
+        android:layout_height="36dp"
+        android:layout_marginStart="112dp"
+        android:layout_marginTop="217dp"
+        android:layout_marginEnd="130dp"
+        android:layout_marginBottom="33dp"
+        android:text="温度(℃)："
+        android:textSize="30sp"
+        app:layout_constraintBottom_toTopOf="@+id/txtTemp"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 </android.support.constraint.ConstraintLayout>

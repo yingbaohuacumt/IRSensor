@@ -1,9 +1,13 @@
 package com.example.yingbh.serial;
 
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 
 import com.kongqw.serialportlibrary.Device;
@@ -30,6 +34,14 @@ public class MainActivity extends AppCompatActivity {
     public IrTempSensor irTempSensor = new IrTempSensor();
     public boolean initSensor = false;
 
+    //其它
+    private TextView txv;
+    private boolean btnFlag = false;
+
+    //多线程
+    private Handler uiHandler;
+    private Thread sonThread;
+
     // Used to load the 'native-lib' library on application startup.
     static {
         System.loadLibrary("native-lib");
@@ -40,34 +52,59 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        //获取温度显示文本ID
+        txv = (TextView) findViewById(R.id.txtTemp);
+
         //红外测温模块接口初始化
         initSensor = irTempSensor.initIrSensor(new File("/dev/ttyUSB0"),921600);
         if(initSensor) {
             Log.i(TAG,"init sensor success");
+
         }
+
+        uiHandler = new Handler(new Handler.Callback() {
+            @Override
+            public boolean handleMessage(Message msg) {
+                Log.i(TAG,"人体温度：" + Float.toString(objTemp) + "℃");
+                txv.setText(Float.toString(objTemp));
+                return true;
+            }
+        });
     }
 
     /**
-     * 功能：单次数据采集
+     * 功能：人体温度测量
      * @param
      * @return
      */
     public void sampleData(View v) {
+        Button btn = (Button)findViewById(R.id.btnSample);
         if(initSensor) {
-            irTempSensor.startDataSample();
+            if(false == btnFlag) {
+                btn.setText("停止检测");
+                btnFlag = true;
+                sonThread = new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        while(btnFlag) {
+                            try {
+                                irTempSensor.startDataSample();
+                                Thread.sleep(500);
+                                caculateObjTemp();
+                                uiHandler.sendEmptyMessage(1);
+                                Thread.sleep(50);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                });
+                sonThread.start();
+            } else {
+                btn.setText("开始检测");
+                btnFlag = false;
+            }
         }
-    }
-    /**
-     * 功能：读取目标温度
-     * @param
-     * @return
-     */
-    public void displayTemp(View v) {
-        TextView txv;
-        txv= (TextView) findViewById(R.id.txtTemp);
-
-        caculateObjTemp();
-        txv.setText(String.valueOf(objTemp));
     }
 
     /**
@@ -89,10 +126,10 @@ public class MainActivity extends AppCompatActivity {
         //像素点温度降序排列
         Collections.sort(irTempSensor.pixelList,Collections.<Integer>reverseOrder());
         Log.i(TAG,"像素点温度数目 = " + irTempSensor.pixelList.size());
-        Log.i(TAG,"排序后像素点温度:");
-//        for(int i=0;i<irTempSensor.pixelList.size();i++) {
-//            Log.i(TAG,"pixelList[" + i + "] = " + irTempSensor.pixelList.get(i));
-//        }
+        Log.i(TAG,"排序后前60像素点温度:");
+        for(int i=0;i<60;i++) {
+            Log.i(TAG,"pixelList[" + i + "] = " + irTempSensor.pixelList.get(i));
+        }
 
         //阈值索引检索
         for(int i=0;i<irTempSensor.pixelList.size();i++) {
