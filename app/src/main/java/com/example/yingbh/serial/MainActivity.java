@@ -56,7 +56,7 @@ public class MainActivity extends AppCompatActivity {
         txv = (TextView) findViewById(R.id.txtTemp);
 
         //红外测温模块接口初始化
-        initSensor = irTempSensor.initIrSensor(new File("/dev/ttyUSB0"),921600);
+        initSensor = irTempSensor.initIrSensor(new File("/dev/ttyS1"),115200);
         if(initSensor) {
             Log.i(TAG,"init sensor success");
 
@@ -89,10 +89,11 @@ public class MainActivity extends AppCompatActivity {
                         while(btnFlag) {
                             try {
                                 irTempSensor.startDataSample();
-                                Thread.sleep(500);
+                                Thread.sleep(300);
+                                irTempSensor.processTemp();
                                 caculateObjTemp();
                                 uiHandler.sendEmptyMessage(1);
-                                Thread.sleep(50);
+                                Thread.sleep(5000);
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
                             }
@@ -125,10 +126,9 @@ public class MainActivity extends AppCompatActivity {
 
         //像素点温度降序排列
         Collections.sort(irTempSensor.pixelList,Collections.<Integer>reverseOrder());
-        Log.i(TAG,"像素点温度数目 = " + irTempSensor.pixelList.size());
-        Log.i(TAG,"排序后前60像素点温度:");
-        for(int i=0;i<60;i++) {
-            Log.i(TAG,"pixelList[" + i + "] = " + irTempSensor.pixelList.get(i));
+        Log.i(TAG,"50个极大值像素点温度:");
+        for(int index=0; index<50; index++) {
+            Log.i(TAG,"pixelList[" + index + "] = " + irTempSensor.pixelList.get(index));
         }
 
         //阈值索引检索
@@ -137,11 +137,12 @@ public class MainActivity extends AppCompatActivity {
             if(temp > OBJ_TEMP_MAX) {
                 continue;
             } else {
-                if(doorStart != 0) {
+                if(doorStart == 0) {
                     doorStart = i;
                 }
 
                 if(temp > OBJ_TEMP_MIN) {
+                    doorEnd = i;
                     continue;
                 } else {
                     doorEnd = i-1;
@@ -152,7 +153,13 @@ public class MainActivity extends AppCompatActivity {
 
         //剔除阈值内极大值
         doorStart += 3;
+        Log.i(TAG,"像素点温度数目 = " + irTempSensor.pixelList.size());
         Log.i(TAG,"阈值范围索引：" + doorStart + "~" + doorEnd);
+//        Log.i(TAG,"阈值范围内像素点温度:");
+//        for(int index=doorStart; index<doorStart+50; index++) {
+//            Log.i(TAG,"pixelList[" + index + "] = " + irTempSensor.pixelList.get(index));
+//        }
+
         if(doorEnd >= doorStart+20) {
             int areaLen = (doorEnd-doorStart+1 >= 40)?40:(doorEnd-doorStart+1);
             int sum = 0;

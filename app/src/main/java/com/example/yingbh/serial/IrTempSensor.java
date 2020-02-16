@@ -20,7 +20,7 @@ public class IrTempSensor {
     private SerialPortManager mSerialPortManager;
     private String CMD_HEAD = "e1";                     //帧头
     private String CMD_TEMP_GET = "eee10155fffcfdff";   //温度图像数据获取命令
-    private int VALID_TEMP_LEN = 2055;                   //正确数据帧长度
+    private int VALID_TEMP_LEN = 2030;                   //正确数据帧长度
     private byte[] sensorID = new byte[4];               //模组编号
     private boolean sensorMarkFlag = false;              //模组编号标记
 
@@ -60,26 +60,26 @@ public class IrTempSensor {
 //                String str = byteArrayToHex(bytes);
 //                Log.d(TAG,"收到数据: " + str);
 
-                if(iLastEnd >= VALID_TEMP_LEN) {
-                    processTemp();
-                }
+//                if(iLastEnd >= VALID_TEMP_LEN) {
+//                    processTemp();
+//                }
             }
 
             public void onDataSent(byte[] bytes){
                 Log.i(TAG,"发送命令："+ byteArrayToHex(bytes) + ",len = " + bytes.length);
                 try {
-                    Thread.sleep(10);
+                    Thread.sleep(1);
                 } catch (InterruptedException e) {
                     Log.i(TAG,"fail to delay 10ms");
                 }
-//                PosUtil.setRs485Status(0);      //RS485接收模式
+                PosUtil.setRs485Status(0);      //RS485接收模式
             }
         });
 
         //打开串口
         boolean openSerialPort = mSerialPortManager.openSerialPort(device,baudRate);
         if(openSerialPort) {
-//            PosUtil.setRs485Status(0);      //RS485接收模式
+            PosUtil.setRs485Status(0);      //RS485接收模式
             Log.i(TAG,"RS485接口初始化成功");
             return true;
         } else {
@@ -104,7 +104,8 @@ public class IrTempSensor {
      */
     public void startDataSample() {
         if(null != mSerialPortManager) {
-//            PosUtil.setRs485Status(1);      //RS485发送模式
+            iLastEnd = 0;
+            PosUtil.setRs485Status(1);      //RS485发送模式
             mSerialPortManager.sendBytes(hexToByteArray(CMD_TEMP_GET));
         }
     }
@@ -114,66 +115,113 @@ public class IrTempSensor {
      * @param none
      * @return
      */
+//    public void processTemp() {
+//        Log.d(TAG,"温度图像数据: len=" + iLastEnd + "; " + byteArrayToHex(sourceData));
+//        int iStart = 0;
+//        int totalDataLen = iLastEnd;
+//        int bufLen = 0;
+//        byte header = hexToByte(CMD_HEAD);
+//
+//        while(totalDataLen >= VALID_TEMP_LEN) {
+//            //匹配帧头
+//            if(sourceData[iStart] == header) {
+//                Log.i(TAG,"iStart = " + iStart + ", totalDataLen = " + totalDataLen);
+//                if((totalDataLen == VALID_TEMP_LEN) && (sensorMarkFlag != true)) {
+//                    //保存模组ID
+//                    sensorID[0] = sourceData[iStart+VALID_TEMP_LEN-4];
+//                    sensorID[1] = sourceData[iStart+VALID_TEMP_LEN-3];
+//                    sensorID[2] = sourceData[iStart+VALID_TEMP_LEN-2];
+//                    sensorID[3] = sourceData[iStart+VALID_TEMP_LEN-1];
+//                    sensorMarkFlag = true;
+//                    Log.i(TAG,"sensor ID :" + byteToHex(sensorID[0]) + " " + byteToHex(sensorID[1])
+//                            + " " + byteToHex(sensorID[2]) + " " + byteToHex(sensorID[3]));
+//                }
+//
+//                //匹配模组ID，剔除错误数据
+//                if((sensorID[0] == sourceData[iStart+VALID_TEMP_LEN-4]) &&
+//                    (sensorID[1] == sourceData[iStart+VALID_TEMP_LEN-3]) &&
+//                    (sensorID[2] == sourceData[iStart+VALID_TEMP_LEN-2]) &&
+//                    (sensorID[3] == sourceData[iStart+VALID_TEMP_LEN-1])){
+//
+//                    pixelList.clear();
+//                    int[] iData = hexArrayToIntArray(sourceData,iLastEnd);
+//                    int pixLen = (totalDataLen<=2048)?(totalDataLen/2):1024;
+//                    int m = 0, n = 0, temp = 0;
+//                    for(int i=0;i<pixLen;i++) {
+//                        m = iStart + i * 2 + 1;
+//                        n = m + 1;
+//                        temp = iData[m]*256+iData[n];
+////                        Log.i(TAG,"pixel temp[" + i + "]:" + iData[m] + " " + iData[n] + "-->" + temp);
+//                        pixelList.add(temp);    //存入原始像素点温度
+//                    }
+////                    Log.i(TAG,"pixelList.size = " + pixelList.size() + ", update pixel temperature!");
+//                    bufLen = VALID_TEMP_LEN;
+//                } else {
+//                    Log.i(TAG,"temp data error!");
+//                    bufLen = 1;
+//                }
+//            } else {
+//                bufLen = 1;
+//            }
+//            totalDataLen -= bufLen;
+//            iStart += bufLen;
+////            Log.i(TAG,"iStart = " + iStart + ", totalDataLen = " + totalDataLen);
+//        }
+//
+//        if(iStart > 0) {
+//            //缓存前移
+//            System.arraycopy(sourceData, iStart, sourceData, 0, totalDataLen);
+//            //刷新缓存存储位置
+//            iLastEnd -= iStart;
+//        }
+//    }
+
     public void processTemp() {
         Log.d(TAG,"温度图像数据: len=" + iLastEnd + "; " + byteArrayToHex(sourceData));
         int iStart = 0;
-        int totalDataLen = iLastEnd;
         int bufLen = 0;
-        byte header = hexToByte(CMD_HEAD);
 
-        while(totalDataLen >= VALID_TEMP_LEN) {
-            //匹配帧头
-            if(sourceData[iStart] == header) {
-//                Log.i(TAG,"iStart = " + iStart + ", totalDataLen = " + totalDataLen);
-                if((totalDataLen == VALID_TEMP_LEN) && (sensorMarkFlag != true)) {
-                    //保存模组ID
-                    sensorID[0] = sourceData[iStart+VALID_TEMP_LEN-4];
-                    sensorID[1] = sourceData[iStart+VALID_TEMP_LEN-3];
-                    sensorID[2] = sourceData[iStart+VALID_TEMP_LEN-2];
-                    sensorID[3] = sourceData[iStart+VALID_TEMP_LEN-1];
-                    sensorMarkFlag = true;
-                    Log.i(TAG,"sensor ID :" + byteToHex(sensorID[0]) + " " + byteToHex(sensorID[1])
-                            + " " + byteToHex(sensorID[2]) + " " + byteToHex(sensorID[3]));
-                }
+        if(iLastEnd < VALID_TEMP_LEN) {
+            Log.i(TAG,"receive too short data!");
+            return;
+        }
 
-                //匹配模组ID，剔除错误数据
-                if((sensorID[0] == sourceData[iStart+VALID_TEMP_LEN-4]) &&
-                    (sensorID[1] == sourceData[iStart+VALID_TEMP_LEN-3]) &&
-                    (sensorID[2] == sourceData[iStart+VALID_TEMP_LEN-2]) &&
-                    (sensorID[3] == sourceData[iStart+VALID_TEMP_LEN-1])){
+        //记录模组ID
+        if(sensorMarkFlag != true) {
+            //保存模组ID
+            sensorID[0] = sourceData[iLastEnd-4];
+            sensorID[1] = sourceData[iLastEnd-3];
+            sensorID[2] = sourceData[iLastEnd-2];
+            sensorID[3] = sourceData[iLastEnd-1];
+            sensorMarkFlag = true;
+            Log.i(TAG,"sensor ID :" + byteToHex(sensorID[0]) + " " + byteToHex(sensorID[1])
+                    + " " + byteToHex(sensorID[2]) + " " + byteToHex(sensorID[3]));
+        }
 
-                    pixelList.clear();
-                    int[] iData = hexArrayToIntArray(sourceData,iLastEnd);
-                    int pixLen = (totalDataLen<=2048)?(totalDataLen/2):1024;
-                    int m = 0, n = 0, temp = 0;
-                    for(int i=0;i<pixLen;i++) {
-                        m = iStart + i * 2 + 1;
-                        n = m + 1;
-                        temp = iData[m]*256+iData[n];
-//                        Log.i(TAG,"pixel temp[" + i + "]:" + iData[m] + " " + iData[n] + "-->" + temp);
-                        pixelList.add(temp);    //存入原始像素点温度
-                    }
-//                    Log.i(TAG,"pixelList.size = " + pixelList.size() + ", update pixel temperature!");
-                    bufLen = VALID_TEMP_LEN;
-                } else {
-                    Log.i(TAG,"temp data error!");
-                    bufLen = 1;
-                }
-            } else {
-                bufLen = 1;
+        //匹配模组ID，剔除错误数据
+        if((sensorID[0] == sourceData[iLastEnd-4]) &&
+                (sensorID[1] == sourceData[iLastEnd-3]) &&
+                (sensorID[2] == sourceData[iLastEnd-2]) &&
+                (sensorID[3] == sourceData[iLastEnd-1])){
+
+            pixelList.clear();
+            int[] iData = hexArrayToIntArray(sourceData,iLastEnd);
+            int pixLen = 1000;
+            iStart = iLastEnd - 6 - 2000 - 1;   //取剩余的1000个点
+            int m = 0, n = 0, temp = 0;
+            for(int i=0; i<pixLen; i++) {
+                m = iStart + i * 2 + 1;
+                n = m + 1;
+                temp = iData[m]*256+iData[n];
+//                Log.i(TAG,"pixel temp[" + i + "]:" + iData[m] + " " + iData[n] + "-->" + temp);
+                pixelList.add(temp);    //存入原始像素点温度
             }
-            totalDataLen -= bufLen;
-            iStart += bufLen;
+            Log.i(TAG,"pixelList.size = " + pixelList.size() + ", update pixel temperature!");
+        } else {
+            Log.i(TAG,"temp data err!");
         }
 
-        if(iStart > 0) {
-            //缓存前移
-            System.arraycopy(sourceData, iStart, sourceData, 0, totalDataLen);
-            //刷新缓存存储位置
-            iLastEnd -= iStart;
-
-//            Log.i(TAG,"iStart = " + iStart + ", iLastEnd = " + iLastEnd);
-        }
+        iLastEnd = 0;
     }
 
     /**
