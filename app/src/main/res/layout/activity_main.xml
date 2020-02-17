@@ -29,7 +29,7 @@
         android:layout_marginTop="33dp"
         android:layout_marginEnd="160dp"
         android:layout_marginBottom="37dp"
-        android:text="35.0"
+        android:text="34.0"
         android:textSize="30sp"
         app:layout_constraintBottom_toTopOf="@+id/btnSample"
         app:layout_constraintEnd_toEndOf="parent"

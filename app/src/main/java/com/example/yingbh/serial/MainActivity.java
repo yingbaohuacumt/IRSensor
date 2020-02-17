@@ -10,16 +10,9 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
-import com.kongqw.serialportlibrary.Device;
-import com.kongqw.serialportlibrary.SerialPortFinder;
-import com.kongqw.serialportlibrary.SerialPortManager;
-import com.kongqw.serialportlibrary.listener.OnSerialPortDataListener;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.Timer;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "SerialIrTemp";
@@ -27,8 +20,8 @@ public class MainActivity extends AppCompatActivity {
     public int BACK_TEMP = 2731;                        //本底温度
     public int OBJ_TEMP_MAX = BACK_TEMP + (int)(42*10.0*DECAY_RATE);
     public int OBJ_TEMP_MIN = BACK_TEMP + (int)(34*10.0*DECAY_RATE);
-    public float objBaseTemp = 35.0f;                   //目标基准温度
-    public float objTemp = 35.0f;                       //目标温度
+    public float objBaseTemp = 34.0f;                   //目标基准温度
+    public float objTemp = 34.0f;                       //目标温度
 
     //红外测温模块
     public IrTempSensor irTempSensor = new IrTempSensor();
@@ -90,10 +83,11 @@ public class MainActivity extends AppCompatActivity {
                             try {
                                 irTempSensor.startDataSample();
                                 Thread.sleep(300);
-                                irTempSensor.processTemp();
-                                caculateObjTemp();
+                                if(irTempSensor.processTemp()) {
+                                    caculateObjTemp();
+                                }
                                 uiHandler.sendEmptyMessage(1);
-                                Thread.sleep(5000);
+                                Thread.sleep(500);
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
                             }
@@ -126,10 +120,10 @@ public class MainActivity extends AppCompatActivity {
 
         //像素点温度降序排列
         Collections.sort(irTempSensor.pixelList,Collections.<Integer>reverseOrder());
-        Log.i(TAG,"50个极大值像素点温度:");
-        for(int index=0; index<50; index++) {
-            Log.i(TAG,"pixelList[" + index + "] = " + irTempSensor.pixelList.get(index));
-        }
+//        Log.i(TAG,"20个极大值像素点温度:");
+//        for(int index=0; index<20; index++) {
+//            Log.i(TAG,"pixelList[" + index + "] = " + irTempSensor.pixelList.get(index));
+//        }
 
         //阈值索引检索
         for(int i=0;i<irTempSensor.pixelList.size();i++) {

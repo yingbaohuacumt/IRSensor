@@ -67,19 +67,15 @@ public class IrTempSensor {
 
             public void onDataSent(byte[] bytes){
                 Log.i(TAG,"发送命令："+ byteArrayToHex(bytes) + ",len = " + bytes.length);
-                try {
-                    Thread.sleep(1);
-                } catch (InterruptedException e) {
-                    Log.i(TAG,"fail to delay 10ms");
-                }
-                PosUtil.setRs485Status(0);      //RS485接收模式
+
+                PosUtil.setRs485Status(0,2);
             }
         });
 
         //打开串口
         boolean openSerialPort = mSerialPortManager.openSerialPort(device,baudRate);
         if(openSerialPort) {
-            PosUtil.setRs485Status(0);      //RS485接收模式
+            PosUtil.setRs485Status(0,0);      //RS485接收模式
             Log.i(TAG,"RS485接口初始化成功");
             return true;
         } else {
@@ -105,7 +101,7 @@ public class IrTempSensor {
     public void startDataSample() {
         if(null != mSerialPortManager) {
             iLastEnd = 0;
-            PosUtil.setRs485Status(1);      //RS485发送模式
+            PosUtil.setRs485Status(1,0);        //RS485发送模式
             mSerialPortManager.sendBytes(hexToByteArray(CMD_TEMP_GET));
         }
     }
@@ -176,15 +172,17 @@ public class IrTempSensor {
 //        }
 //    }
 
-    public void processTemp() {
-        Log.d(TAG,"温度图像数据: len=" + iLastEnd + "; " + byteArrayToHex(sourceData));
+    public boolean processTemp() {
         int iStart = 0;
         int bufLen = 0;
+        boolean ret = false;
 
         if(iLastEnd < VALID_TEMP_LEN) {
             Log.i(TAG,"receive too short data!");
-            return;
+            return ret;
         }
+
+        Log.d(TAG,"温度图像数据: len=" + iLastEnd + "; " + byteArrayToHex(sourceData));
 
         //记录模组ID
         if(sensorMarkFlag != true) {
@@ -217,11 +215,15 @@ public class IrTempSensor {
                 pixelList.add(temp);    //存入原始像素点温度
             }
             Log.i(TAG,"pixelList.size = " + pixelList.size() + ", update pixel temperature!");
+
+            ret = true;
         } else {
             Log.i(TAG,"temp data err!");
+            ret = false;
         }
 
         iLastEnd = 0;
+        return ret;
     }
 
     /**
