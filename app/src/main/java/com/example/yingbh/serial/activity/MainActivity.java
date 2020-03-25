@@ -17,16 +17,17 @@ import java.io.File;
 import java.util.Collections;
 
 public class MainActivity extends AppCompatActivity {
-    private static final String TAG = "SerialIrTemp";
+    private static final String TAG = "Sensor";
     private static final int UPDATE_TEMP_FLAG = 1;
     private static final int UPDATE_DISTANCE_FLAG = 2;
-    public float objTemp = 34.0f;                       //目标温度
 
     //红外测温模块
     public IrTempSensor irTempSensor = new IrTempSensor();
     public boolean initSensor = false;
+    public float objTemp = 35.0f;                       //目标温度
 
     //测距模块
+    public int objDistance = 50;
 
     //其它
     private TextView tvTemp,tvDistance;
@@ -61,8 +62,17 @@ public class MainActivity extends AppCompatActivity {
         uiHandler = new Handler(new Handler.Callback() {
             @Override
             public boolean handleMessage(Message msg) {
-                Log.i(TAG,"人体温度：" + Float.toString(objTemp) + "℃");
-                tvTemp.setText(String.format("%.2f",objTemp));
+                switch (msg.what) {
+                    case UPDATE_TEMP_FLAG:
+                        Log.i(TAG,"人脸温度：" + Float.toString(objTemp) + "℃");
+                        tvTemp.setText(String.format("%.2f",objTemp));
+                        break;
+                    case UPDATE_DISTANCE_FLAG:
+                        Log.i(TAG,"人脸距离：" + objDistance + "cm");
+                        tvTemp.setText(String.format("%d",objDistance));
+                        break;
+                }
+
                 return true;
             }
         });
@@ -81,13 +91,13 @@ public class MainActivity extends AppCompatActivity {
                                 while(btnFlag) {
                                     try {
                                         irTempSensor.startDataSample();
-                                        Thread.sleep(400);
+                                        Thread.sleep(300);
                                         if(irTempSensor.processTemp()) {
                                             irTempSensor.calculateObjTemp();
                                             objTemp = irTempSensor.objTemp;
                                         }
                                         uiHandler.sendEmptyMessage(UPDATE_TEMP_FLAG);
-                                        Thread.sleep(100);
+                                        Thread.sleep(50);
                                     } catch (InterruptedException e) {
                                         e.printStackTrace();
                                     }
