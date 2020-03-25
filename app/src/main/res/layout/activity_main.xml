@@ -1,53 +1,60 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity">
+    android:orientation="vertical"
+    android:gravity="center_vertical|center_horizontal"
+    tools:context=".activity.MainActivity">
 
-    <Button
-        android:id="@+id/btnSample"
+    <RelativeLayout
+        android:id="@+id/linearLayout"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="128dp"
-        android:layout_marginTop="20dp"
-        android:layout_marginEnd="148dp"
-        android:layout_marginBottom="92dp"
-        android:onClick="sampleData"
+        android:gravity="center_horizontal">
+
+        <TextView
+            android:id="@+id/textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="温度(℃)："
+            android:textSize="50sp" />
+
+        <TextView
+            android:id="@+id/tv_temp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="35.0"
+            android:textSize="50sp"
+            android:layout_alignBottom="@+id/textView"
+            android:layout_toRightOf="@+id/textView"/>
+
+        <TextView
+            android:id="@+id/textView2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="距离(cm)："
+            android:textSize="50sp"
+            android:layout_below="@+id/textView"/>
+
+        <TextView
+            android:id="@+id/tv_distance"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0"
+            android:textSize="50sp"
+            android:layout_below="@+id/textView"
+            android:layout_toRightOf="@+id/textView2"/>
+
+    </RelativeLayout>
+
+    <Button
+        android:id="@+id/btn_sample"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:text="开始检测"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/txtTemp" />
+        android:textSize="50sp"
+        android:layout_gravity="bottom|center_horizontal"/>
 
-    <TextView
-        android:id="@+id/txtTemp"
-        android:layout_width="87dp"
-        android:layout_height="37dp"
-        android:layout_marginStart="137dp"
-        android:layout_marginTop="33dp"
-        android:layout_marginEnd="160dp"
-        android:layout_marginBottom="37dp"
-        android:text="34.0"
-        android:textSize="30sp"
-        app:layout_constraintBottom_toTopOf="@+id/btnSample"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textView" />
-
-    <TextView
-        android:id="@+id/textView"
-        android:layout_width="142dp"
-        android:layout_height="36dp"
-        android:layout_marginStart="112dp"
-        android:layout_marginTop="217dp"
-        android:layout_marginEnd="130dp"
-        android:layout_marginBottom="33dp"
-        android:text="温度(℃)："
-        android:textSize="30sp"
-        app:layout_constraintBottom_toTopOf="@+id/txtTemp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-</android.support.constraint.ConstraintLayout>
+</LinearLayout>
