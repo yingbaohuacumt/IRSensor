@@ -16,6 +16,8 @@ import com.example.yingbh.serial.sensor.IrTempSensor;
 import com.example.yingbh.serial.R;
 import com.minivision.parameter.util.LogBuilder;
 import com.minivision.parameter.util.LogUtil;
+import com.example.yingbh.serial.sensor.DistanceSensor;
+
 
 import java.io.File;
 import java.io.FileWriter;
@@ -36,6 +38,7 @@ public class MainActivity extends AppCompatActivity {
 
     //测距模块
     public int objDistance = 50;
+    public DistanceSensor distanceSensor = new DistanceSensor();
 
     //其它
     private TextView tvTemp,tvEnvTemp,tvDistance;
@@ -85,6 +88,14 @@ public class MainActivity extends AppCompatActivity {
         if(initSensor) {
             Log.i(TAG,"init sensor success");
         }
+        //距离传感器初始化
+        initSensor = distanceSensor.initDistatnceSensor(new File("/dev/ttyUSB0"),9600);
+        if(initSensor) {
+            Log.i(TAG,"init distance sensor success");
+        }
+        else{
+            Log.e(TAG,"init distance sensor failed");
+        }
 
         uiHandler = new Handler(new Handler.Callback() {
             @Override
@@ -96,8 +107,8 @@ public class MainActivity extends AppCompatActivity {
                         tvEnvTemp.setText(String.format("%.2f",envTemp));
                         break;
                     case UPDATE_DISTANCE_FLAG:
-                        Log.i(TAG,"人脸距离：" + objDistance + "cm");
-                        tvTemp.setText(String.format("%d",objDistance));
+                        Log.i(TAG,"人脸距离：" + objDistance + "mm");
+                        tvDistance.setText(String.format("%d",objDistance));
                         break;
                 }
 
@@ -120,6 +131,7 @@ public class MainActivity extends AppCompatActivity {
                                 while(btnFlag) {
                                     try {
                                         irTempSensor.startDataSample();
+                                        distanceSensor.startDataSample();   // 获取距离
                                         Thread.sleep(400);
                                         if(irTempSensor.processTemp()) {
                                             irTempSensor.calculateObjTemp();
@@ -128,8 +140,13 @@ public class MainActivity extends AppCompatActivity {
                                         }
                                         uiHandler.sendEmptyMessage(UPDATE_TEMP_FLAG);
 
+                                        if (distanceSensor.isSensorDistanceGet()) {
+                                            objDistance = distanceSensor.SensorDistanceValue();
+                                            uiHandler.sendEmptyMessage(UPDATE_DISTANCE_FLAG);
+                                        }
+
                                         LogUtil.i(MainActivity.class,String.format(",脸温(℃),%.2f,环温(℃),%.2f,距离(cm),%d,像素点温度极大值,%s"
-                                                , objTemp, envTemp, objDistance,irTempSensor.pixelMaxValue));
+                                        , objTemp, envTemp, objDistance,irTempSensor.pixelMaxValue));
                                         Thread.sleep(50);
                                     } catch (InterruptedException e) {
                                         e.printStackTrace();
