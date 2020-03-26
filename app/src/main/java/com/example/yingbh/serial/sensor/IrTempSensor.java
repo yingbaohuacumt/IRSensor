@@ -26,11 +26,12 @@ public class IrTempSensor {
     private byte[] sourceData = new byte[4096];          //温度图像数据缓存
     private int iLastEnd = 0;                            //数据缓存区尾地址
     private ArrayList<Integer> pixelList = new ArrayList<>();    //像素点温度
+    public StringBuilder pixelMaxValue = new StringBuilder("");
 
     /**
      * PRD1.0.6：将补偿系数默认值调整为1
      */
-    private float DECAY_RATE = 0.96f;               //默认红外衰减率
+    private float DECAY_RATE = 1.0f;               //默认红外衰减率0.96
     private final int BACK_TEMP = 2731;             //本底温度
     private final int HUMAN_TEMP_MAX = 42;          //人体温度上限
     private final int HUMAN_TEMP_MIN = 32;          //人体温度上限
@@ -48,13 +49,13 @@ public class IrTempSensor {
      * 构造函数
      */
     public IrTempSensor() {
-        int[] setParamCMD = {0xee,0xb2,0x55,0xaa,0x00,0x00,0x00,0x00,0xff,0xfc,0xfd,0xff};
-        CMD_SET_PARAM = intArrayToByteArray(setParamCMD, setParamCMD.length);
-
-        byte[] data = floatToByte(DECAY_RATE);
-        for (int i=0;i<4;i++) {
-            CMD_SET_PARAM[i+4] = data[i];
-        }
+//        int[] setParamCMD = {0xee,0xb2,0x55,0xaa,0x00,0x00,0x00,0x00,0xff,0xfc,0xfd,0xff};
+//        CMD_SET_PARAM = intArrayToByteArray(setParamCMD, setParamCMD.length);
+//
+//        byte[] data = floatToByte(DECAY_RATE);
+//        for (int i=0;i<4;i++) {
+//            CMD_SET_PARAM[i+4] = data[i];
+//        }
     }
 
     /**
@@ -302,10 +303,13 @@ public class IrTempSensor {
         //人体温度计算
         doorStart += 3;
         if(doorStart + 40 < pixelList.size()) {
+            pixelMaxValue = new StringBuilder("");
             Log.i(TAG, "阈值范围索引：" + doorStart + "~" + doorEnd);
             Log.i(TAG, "阈值内像素点温度极大值:");
             for (int i = doorStart; i < doorStart + OBJ_COVER_VALID_PIXEL; i++) {
                 Log.i(TAG, "pixelList[ " + i + "] = " + pixelList.get(i));
+                pixelMaxValue.append(pixelList.get(i));
+                pixelMaxValue.append(" ");
             }
 
             // 场景区分，false-无遮挡，true-有遮挡

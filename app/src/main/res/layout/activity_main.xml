@@ -5,8 +5,9 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:gravity="center_vertical|center_horizontal"
+    android:gravity="center_horizontal|center_vertical"
     tools:context=".activity.MainActivity">
+
 
     <RelativeLayout
         android:id="@+id/linearLayout"
@@ -18,43 +19,80 @@
             android:id="@+id/textView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="温度(℃)："
-            android:textSize="50sp" />
+            android:text="人体温度(℃)："
+            android:textSize="40sp" />
 
         <TextView
             android:id="@+id/tv_temp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="35.0"
-            android:textSize="50sp"
+            android:textSize="40sp"
             android:layout_alignBottom="@+id/textView"
             android:layout_toRightOf="@+id/textView"/>
+
+        <TextView
+            android:id="@+id/textView1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="环境温度(℃)："
+            android:textSize="40sp"
+            android:layout_below="@+id/textView"/>
+
+        <TextView
+            android:id="@+id/tv_envtemp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="25.0"
+            android:textSize="40sp"
+            android:layout_alignBottom="@+id/textView1"
+            android:layout_toRightOf="@+id/textView1"/>
 
         <TextView
             android:id="@+id/textView2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="距离(cm)："
-            android:textSize="50sp"
-            android:layout_below="@+id/textView"/>
+            android:textSize="40sp"
+            android:layout_below="@+id/textView1"/>
 
         <TextView
             android:id="@+id/tv_distance"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="0"
-            android:textSize="50sp"
-            android:layout_below="@+id/textView"
+            android:textSize="40sp"
+            android:layout_below="@+id/textView1"
             android:layout_toRightOf="@+id/textView2"/>
 
     </RelativeLayout>
 
-    <Button
-        android:id="@+id/btn_sample"
+    <LinearLayout
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="开始检测"
-        android:textSize="50sp"
-        android:layout_gravity="bottom|center_horizontal"/>
+        android:layout_height="wrap_content">
+
+        <Button
+            android:id="@+id/btn_sample"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="开始检测"
+            android:textSize="40sp"/>
+
+        <Button
+            android:id="@+id/btn_clr_log"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="清除日志"
+            android:textSize="40sp"/>
+
+        <Button
+            android:id="@+id/btn_other_config"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="系统配置"
+            android:textSize="40sp" />
+    </LinearLayout>
+
+
 
 </LinearLayout>
