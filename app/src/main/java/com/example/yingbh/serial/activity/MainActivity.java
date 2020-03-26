@@ -12,6 +12,7 @@ import android.widget.TextView;
 
 import com.example.yingbh.serial.sensor.IrTempSensor;
 import com.example.yingbh.serial.R;
+import com.example.yingbh.serial.sensor.DistanceSensor;
 
 import java.io.File;
 import java.util.Collections;
@@ -28,6 +29,7 @@ public class MainActivity extends AppCompatActivity {
 
     //测距模块
     public int objDistance = 50;
+    public DistanceSensor distanceSensor = new DistanceSensor();
 
     //其它
     private TextView tvTemp,tvDistance;
@@ -56,7 +58,14 @@ public class MainActivity extends AppCompatActivity {
         initSensor = irTempSensor.initIrSensor(new File("/dev/ttyS1"),115200);
         if(initSensor) {
             Log.i(TAG,"init sensor success");
-
+        }
+        //距离传感器初始化
+        initSensor = distanceSensor.initDistatnceSensor(new File("/dev/ttyUSB0"),9600);
+        if(initSensor) {
+            Log.i(TAG,"init distance sensor success");
+        }
+        else{
+            Log.e(TAG,"init distance sensor failed");
         }
 
         uiHandler = new Handler(new Handler.Callback() {
@@ -68,8 +77,8 @@ public class MainActivity extends AppCompatActivity {
                         tvTemp.setText(String.format("%.2f",objTemp));
                         break;
                     case UPDATE_DISTANCE_FLAG:
-                        Log.i(TAG,"人脸距离：" + objDistance + "cm");
-                        tvTemp.setText(String.format("%d",objDistance));
+                        Log.i(TAG,"人脸距离：" + objDistance + "mm");
+                        tvDistance.setText(String.format("%d",objDistance));
                         break;
                 }
 
@@ -90,13 +99,21 @@ public class MainActivity extends AppCompatActivity {
                             public void run() {
                                 while(btnFlag) {
                                     try {
-                                        irTempSensor.startDataSample();
+                                        irTempSensor.startDataSample();distanceSensor.startDataSample();   // 获取距离
                                         Thread.sleep(300);
-                                        if(irTempSensor.processTemp()) {
+                                           if(irTempSensor.processTemp()) {
                                             irTempSensor.calculateObjTemp();
                                             objTemp = irTempSensor.objTemp;
+                                            uiHandler.sendEmptyMessage(UPDATE_TEMP_FLAG);
                                         }
-                                        uiHandler.sendEmptyMessage(UPDATE_TEMP_FLAG);
+                                       // Thread.sleep(50);
+
+                                        //Thread.sleep(300);
+                                        if (distanceSensor.isSensorDistanceGet()) {
+                                            objDistance = distanceSensor.SensorDistanceValue();
+                                            uiHandler.sendEmptyMessage(UPDATE_DISTANCE_FLAG);
+                                        }
+
                                         Thread.sleep(50);
                                     } catch (InterruptedException e) {
                                         e.printStackTrace();

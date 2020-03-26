@@ -34,7 +34,7 @@
             android:id="@+id/textView2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="距离(cm)："
+            android:text="距离(mm)："
             android:textSize="50sp"
             android:layout_below="@+id/textView"/>
 
