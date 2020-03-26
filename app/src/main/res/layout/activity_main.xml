@@ -8,6 +8,23 @@
     android:gravity="center_horizontal|center_vertical"
     tools:context=".activity.MainActivity">
 
+    <ca.hss.heatmaplib.HeatMap
+        android:id="@+id/example_map"
+        android:layout_width="320dp"
+        android:layout_height="320dp"
+        app:minOpacity="255"
+        app:maxOpacity="255"
+        app:blur="0.001"
+        app:maxDrawingHeight="320dp"
+        app:maxDrawingWidth="320dp"
+        app:transparentBackground="false"/>
+
+    <CheckBox
+        android:id="@+id/change_async_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="8dp"
+        android:text="异步绘图"/>
 
     <RelativeLayout
         android:id="@+id/linearLayout"
@@ -26,10 +43,10 @@
             android:id="@+id/tv_temp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="35.0"
-            android:textSize="40sp"
             android:layout_alignBottom="@+id/textView"
-            android:layout_toRightOf="@+id/textView"/>
+            android:layout_toRightOf="@+id/textView"
+            android:text="35.0"
+            android:textSize="40sp" />
 
         <TextView
             android:id="@+id/textView1"

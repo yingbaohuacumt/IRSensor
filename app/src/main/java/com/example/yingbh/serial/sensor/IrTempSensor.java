@@ -26,6 +26,7 @@ public class IrTempSensor {
     private byte[] sourceData = new byte[4096];          //温度图像数据缓存
     private int iLastEnd = 0;                            //数据缓存区尾地址
     private ArrayList<Integer> pixelList = new ArrayList<>();    //像素点温度
+    public ArrayList<Integer> pixelListBackup = new ArrayList<>(1024);    //像素点温度备份
     public StringBuilder pixelMaxValue = new StringBuilder("");
 
     /**
@@ -247,16 +248,25 @@ public class IrTempSensor {
                     (sensorID[3] == sourceData[iLastEnd - 1])) {
 
                 pixelList.clear();
+                pixelListBackup.clear();
                 int[] iData = byteArrayToIntArray(sourceData, iLastEnd);
                 int pixLen = 1000;
                 iStart = iLastEnd - 6 - 2000 - 1;   //取剩余的1000个点
                 int m = 0, n = 0, temp = 0;
+
+                //备份数据补齐24个
+                for(int i = 0; i < 24; i++) {
+                    pixelListBackup.add(2731);
+                }
+
+                //像素点温度计算存储
                 for (int i = 0; i < pixLen; i++) {
                     m = iStart + i * 2 + 1;
                     n = m + 1;
                     temp = iData[m] * 256 + iData[n];
                     //                Log.i(TAG,"pixel temp[" + i + "]:" + iData[m] + " " + iData[n] + "-->" + temp);
                     pixelList.add(temp);    //存入原始像素点温度
+                    pixelListBackup.add(temp);
                 }
                 Log.i(TAG, "pixelList.size = " + pixelList.size() + ", update pixel temperature!");
             } else {

@@ -45,6 +45,7 @@ dependencies {
     compile 'com.github.kongqw:AndroidSerialPort:1.0.1'
     implementation files('libs/PosUtil.jar')
     compile(name: "minivisionlogger-1.3.5", ext: 'aar')
+    implementation 'ca.heartlandsoftware:androidheatmap:1.1.1'
 }
 
 

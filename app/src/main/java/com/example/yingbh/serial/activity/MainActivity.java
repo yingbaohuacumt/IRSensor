@@ -1,13 +1,19 @@
 package com.example.yingbh.serial.activity;
 
+import android.graphics.Color;
+import android.os.AsyncTask;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
+import android.support.annotation.AnyThread;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.ArrayMap;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -22,13 +28,20 @@ import com.example.yingbh.serial.sensor.DistanceSensor;
 import java.io.File;
 import java.io.FileWriter;
 import java.util.Collections;
+import java.util.Map;
+import java.util.Random;
 
-public class MainActivity extends AppCompatActivity {
+import ca.hss.heatmaplib.HeatMap;
+import ca.hss.heatmaplib.HeatMapMarkerCallback;
+
+public class MainActivity extends AppCompatActivity implements CompoundButton.OnCheckedChangeListener{
     private static final String TAG = "Sensor";
     private static final int UPDATE_TEMP_FLAG = 1;
     private static final int UPDATE_DISTANCE_FLAG = 2;
+    private static final int DISPLAY_HOT_IMAGE_FLAG = 3;
     private static final String LOG_PATH = "/DeviceMonitorLog/com.example.yingbh.serial";
     public LogBuilder builder;
+    private int runCnts = 0;
 
     //红外测温模块
     public IrTempSensor irTempSensor = new IrTempSensor();
@@ -48,6 +61,11 @@ public class MainActivity extends AppCompatActivity {
     //多线程
     private Handler uiHandler;
     private Thread sonThread;
+
+    //热力图
+    private HeatMap map;
+    private boolean testAsync = true;
+    CheckBox box;
 
     // Used to load the 'native-lib' library on application startup.
     static {
@@ -77,11 +95,37 @@ public class MainActivity extends AppCompatActivity {
         LogUtil.i(MainActivity.class,"**************** 测温测距日志记录 ****************");
         LogUtil.i(MainActivity.class,"***************************************************");
 
+        box = findViewById(R.id.change_async_status);
         tvTemp = (TextView) findViewById(R.id.tv_temp);
         tvEnvTemp = (TextView) findViewById(R.id.tv_envtemp);
         tvDistance = (TextView) findViewById(R.id.tv_distance);
         btnSample = (Button) findViewById(R.id.btn_sample);
         btnClrLog = (Button) findViewById(R.id.btn_clr_log);
+
+        //热图配置
+        map = findViewById(R.id.example_map);
+        map.setMinimum(20.0);
+        map.setMaximum(40.0);       //热图覆盖梯度
+        //        map.setLeftPadding(100);
+        //        map.setRightPadding(100);
+        //        map.setTopPadding(100);
+        //        map.setBottomPadding(100);
+        map.setRadius(15.0);
+        Map<Float,Integer> colors = new ArrayMap<>();
+        for (int i = 0; i < 41; i++) {
+            float stop = ((float)i) / 40.0f;
+            int color = doGradient(i * 5, 0, 200, 0xff00ff00, 0xffff0000);
+            colors.put(stop, color);
+        }
+        map.setColorStops(colors);  //颜色梯度
+
+        //        map.setOnMapClickListener(new HeatMap.OnMapClickListener() {
+        //            @Override
+        //            public void onMapClicked(int x, int y, HeatMap.DataPoint closest) {
+        //                addData();
+        //            }
+        //        });
+
 
         //红外测温模块接口初始化
         initSensor = irTempSensor.initIrSensor(new File("/dev/ttyS1"),115200);
@@ -110,11 +154,16 @@ public class MainActivity extends AppCompatActivity {
                         Log.i(TAG,"人脸距离：" + objDistance + "mm");
                         tvDistance.setText(String.format("%d",objDistance));
                         break;
+                    case DISPLAY_HOT_IMAGE_FLAG:
+                        Log.i(TAG,"热成像图显示");
+                        addData();
+                        break;
                 }
 
                 return true;
             }
         });
+
 
         //开始检测按键onClick事件
         btnSample.setOnClickListener(new View.OnClickListener() {
@@ -145,8 +194,15 @@ public class MainActivity extends AppCompatActivity {
                                             uiHandler.sendEmptyMessage(UPDATE_DISTANCE_FLAG);
                                         }
 
-                                        LogUtil.i(MainActivity.class,String.format(",脸温(℃),%.2f,环温(℃),%.2f,距离(cm),%d,像素点温度极大值,%s"
+                                        LogUtil.i(MainActivity.class,String.format(",脸温(℃),%.2f,环温(℃),%.2f,距离(mm),%d,像素点温度极大值,%s"
                                         , objTemp, envTemp, objDistance,irTempSensor.pixelMaxValue));
+
+                                        runCnts++;
+                                        if(runCnts%2 == 0) {
+                                            //热图显示处理
+                                            drawNewMap();
+                                            uiHandler.sendEmptyMessage(DISPLAY_HOT_IMAGE_FLAG);
+                                        }
                                         Thread.sleep(50);
                                     } catch (InterruptedException e) {
                                         e.printStackTrace();
@@ -164,6 +220,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        //清除日志按键事件
         btnClrLog.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -203,8 +260,78 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+
+        box.setOnCheckedChangeListener(this);
     }
 
+    private void addData() {
+        if (testAsync) {
+            AsyncTask.execute(new Runnable() {
+                @Override
+                public void run() {
+//                    drawNewMap();
+                    map.forceRefreshOnWorkerThread();
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            map.invalidate();
+                        }
+                    });
+                }
+            });
+        }
+        else {
+//            drawNewMap();
+            map.forceRefresh();
+        }
+    }
+
+    @AnyThread
+    private void drawNewMap() {
+        map.clearData();
+        if(irTempSensor.pixelListBackup.size() >= 1024) {
+            float x,y,temp;
+            for (int line=0;line<32;line++) {
+                for(int column=0;column<32;column++) {
+                    x=(float)line/32.0f+0.015625f;
+                    y=(float)column/32.0f+0.015625f;
+                    temp = (float) (irTempSensor.pixelListBackup.get(line*32+column) - 2731)/10.0f;
+                    HeatMap.DataPoint point = new HeatMap.DataPoint(x,y,temp);
+                    map.addData(point);
+                }
+            }
+        }
+
+    }
+
+
+    private static int doGradient(double value, double min, double max, int min_color, int max_color) {
+        if (value >= max) {
+            return max_color;
+        }
+        if (value <= min) {
+            return min_color;
+        }
+        float[] hsvmin = new float[3];
+        float[] hsvmax = new float[3];
+        float frac = (float)((value - min) / (max - min));
+        Color.RGBToHSV(Color.red(min_color), Color.green(min_color), Color.blue(min_color), hsvmin);
+        Color.RGBToHSV(Color.red(max_color), Color.green(max_color), Color.blue(max_color), hsvmax);
+        float[] retval = new float[3];
+        for (int i = 0; i < 3; i++) {
+            retval[i] = interpolate(hsvmin[i], hsvmax[i], frac);
+        }
+        return Color.HSVToColor(retval);
+    }
+
+    private static float interpolate(float a, float b, float proportion) {
+        return (a + ((b - a) * proportion));
+    }
+
+    @Override
+    public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+        testAsync = !testAsync;
+    }
 
     /**
      * A native method that is implemented by the 'native-lib' native library,
