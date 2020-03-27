@@ -19,13 +19,6 @@
         app:maxDrawingWidth="320dp"
         app:transparentBackground="false"/>
 
-    <CheckBox
-        android:id="@+id/change_async_status"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="8dp"
-        android:text="异步绘图"/>
-
     <RelativeLayout
         android:id="@+id/linearLayout"
         android:layout_width="wrap_content"

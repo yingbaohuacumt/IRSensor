@@ -34,7 +34,7 @@ import java.util.Random;
 import ca.hss.heatmaplib.HeatMap;
 import ca.hss.heatmaplib.HeatMapMarkerCallback;
 
-public class MainActivity extends AppCompatActivity implements CompoundButton.OnCheckedChangeListener{
+public class MainActivity extends AppCompatActivity{
     private static final String TAG = "Sensor";
     private static final int UPDATE_TEMP_FLAG = 1;
     private static final int UPDATE_DISTANCE_FLAG = 2;
@@ -66,7 +66,6 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
     //热力图
     private HeatMap map;
     private boolean testAsync = true;
-    CheckBox box;
 
     // Used to load the 'native-lib' library on application startup.
     static {
@@ -96,7 +95,6 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         LogUtil.i(MainActivity.class,"**************** 测温测距日志记录 ****************");
         LogUtil.i(MainActivity.class,"***************************************************");
 
-        box = findViewById(R.id.change_async_status);
         tvTemp = (TextView) findViewById(R.id.tv_temp);
         tvEnvTemp = (TextView) findViewById(R.id.tv_envtemp);
         tvDistance = (TextView) findViewById(R.id.tv_distance);
@@ -269,7 +267,6 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
             }
         });
 
-        box.setOnCheckedChangeListener(this);
     }
 
     private void addData() {
@@ -301,8 +298,8 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
             float x,y,temp;
             for (int line=0;line<32;line++) {
                 for(int column=0;column<32;column++) {
-                    x=(float)line/32.0f+0.015625f;
-                    y=(float)column/32.0f+0.015625f;
+                    y=(float)line/32.0f+0.015625f;
+                    x=(float)column/32.0f+0.015625f;
                     temp = (float) (irTempSensor.pixelListBackup.get(line*32+column) - 2731)/10.0f;
                     HeatMap.DataPoint point = new HeatMap.DataPoint(x,y,temp);
                     map.addData(point);
@@ -334,11 +331,6 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
 
     private static float interpolate(float a, float b, float proportion) {
         return (a + ((b - a) * proportion));
-    }
-
-    @Override
-    public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-        testAsync = !testAsync;
     }
 
     private float temp_cal(float temp, float distance)
