@@ -69,7 +69,7 @@
             android:id="@+id/textView2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="距离(cm)："
+            android:text="距离(mm)："
             android:textSize="40sp"
             android:layout_below="@+id/textView1"/>
 
@@ -81,6 +81,23 @@
             android:textSize="40sp"
             android:layout_below="@+id/textView1"
             android:layout_toRightOf="@+id/textView2"/>
+
+        <TextView
+            android:id="@+id/calTemp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="校准温度(℃):"
+            android:textSize="40sp"
+            android:layout_below="@+id/textView2"/>
+
+        <TextView
+            android:id="@+id/tv_calTemp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0"
+            android:textSize="40sp"
+            android:layout_below="@+id/textView2"
+            android:layout_toRightOf="@+id/calTemp"/>
 
     </RelativeLayout>
 

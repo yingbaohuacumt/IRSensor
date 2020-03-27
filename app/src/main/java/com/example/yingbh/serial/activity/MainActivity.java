@@ -48,13 +48,14 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
     public boolean initSensor = false;
     public float objTemp = 35.0f;                       //目标温度
     public float envTemp = 0.0f;
+    public float calTemp = 0.0f;
 
     //测距模块
     public int objDistance = 50;
     public DistanceSensor distanceSensor = new DistanceSensor();
 
     //其它
-    private TextView tvTemp,tvEnvTemp,tvDistance;
+    private TextView tvTemp,tvEnvTemp,tvDistance, tvCalTemp;
     private Button btnSample,btnClrLog;
     private boolean btnFlag = false;
 
@@ -101,6 +102,7 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         tvDistance = (TextView) findViewById(R.id.tv_distance);
         btnSample = (Button) findViewById(R.id.btn_sample);
         btnClrLog = (Button) findViewById(R.id.btn_clr_log);
+        tvCalTemp = (TextView)findViewById(R.id.tv_calTemp) ;
 
         //热图配置
         map = findViewById(R.id.example_map);
@@ -146,13 +148,16 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
             public boolean handleMessage(Message msg) {
                 switch (msg.what) {
                     case UPDATE_TEMP_FLAG:
-                        Log.i(TAG,String.format("人脸温度(℃)：%.2f；环境温度(℃)：%.2f", objTemp, envTemp));
+                        Log.i(TAG,String.format("人脸温度(℃)：%.2f；?环境温度(℃)：%.2f", objTemp, envTemp));
                         tvTemp.setText(String.format("%.2f",objTemp));
                         tvEnvTemp.setText(String.format("%.2f",envTemp));
                         break;
                     case UPDATE_DISTANCE_FLAG:
                         Log.i(TAG,"人脸距离：" + objDistance + "mm");
+                        Log.i(TAG,String.format("校准后温度(℃)：%.2f", calTemp ));
+
                         tvDistance.setText(String.format("%d",objDistance));
+                        tvCalTemp.setText(String.format("%.2f",calTemp));
                         break;
                     case DISPLAY_HOT_IMAGE_FLAG:
                         Log.i(TAG,"热成像图显示");
@@ -194,8 +199,11 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
                                             uiHandler.sendEmptyMessage(UPDATE_DISTANCE_FLAG);
                                         }
 
-                                        LogUtil.i(MainActivity.class,String.format(",脸温(℃),%.2f,环温(℃),%.2f,距离(mm),%d,像素点温度极大值,%s"
-                                        , objTemp, envTemp, objDistance,irTempSensor.pixelMaxValue));
+                                        calTemp = temp_cal(objTemp, ((float)objDistance)/10);
+
+
+                                        LogUtil.i(MainActivity.class,String.format(",脸温(℃),%.2f,环温(℃),%.2f,距离(mm),%d,校温(℃),%.2f,像素点温度极大值,%s"
+                                        , objTemp, envTemp, objDistance,calTemp,irTempSensor.pixelMaxValue));
 
                                         runCnts++;
                                         if(runCnts%2 == 0) {
@@ -333,6 +341,14 @@ public class MainActivity extends AppCompatActivity implements CompoundButton.On
         testAsync = !testAsync;
     }
 
+    private float temp_cal(float temp, float distance)
+    {
+        return (temp - fx(distance) + fx(50.00f));
+    }
+
+    private float fx(float x){
+        return (float)(36.30024 - 0.07277 * x + 7.27922*Math.pow(10,-4)*Math.pow(x,2) - 2.44949*Math.pow(10,-6)*Math.pow(x,3));
+    }
     /**
      * A native method that is implemented by the 'native-lib' native library,
      * which is packaged with this application.

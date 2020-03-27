@@ -32,7 +32,7 @@ public class IrTempSensor {
     /**
      * PRD1.0.6：将补偿系数默认值调整为1
      */
-    private float DECAY_RATE = 1.0f;               //默认红外衰减率0.96
+    private float DECAY_RATE = 0.954f;               //默认红外衰减率0.96 -> 0.954
     private final int BACK_TEMP = 2731;             //本底温度
     private final int HUMAN_TEMP_MAX = 42;          //人体温度上限
     private final int HUMAN_TEMP_MIN = 32;          //人体温度上限
