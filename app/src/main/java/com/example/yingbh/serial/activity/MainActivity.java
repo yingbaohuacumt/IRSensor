@@ -188,7 +188,7 @@ public class MainActivity extends AppCompatActivity{
                                         if(irTempSensor.processTemp()) {
                                             irTempSensor.calculateObjTemp();
                                             objTemp = irTempSensor.objTemp;
-                                            envTemp = irTempSensor.envTemp;
+                                            envTemp = irTempSensor.envGet();
                                         }
                                         uiHandler.sendEmptyMessage(UPDATE_TEMP_FLAG);
 

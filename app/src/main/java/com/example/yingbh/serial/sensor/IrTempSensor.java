@@ -28,6 +28,7 @@ public class IrTempSensor {
     private ArrayList<Integer> pixelList = new ArrayList<>();    //像素点温度
     public ArrayList<Integer> pixelListBackup = new ArrayList<>(1024);    //像素点温度备份
     public StringBuilder pixelMaxValue = new StringBuilder("");
+    private ArrayList<Float> envList = new ArrayList<>(30);     //环境温度缓存表
 
     /**
      * PRD1.0.6：将补偿系数默认值调整为1
@@ -36,9 +37,11 @@ public class IrTempSensor {
     private final int BACK_TEMP = 2731;             //本底温度
     private final int HUMAN_TEMP_MAX = 42;          //人体温度上限
     private final int HUMAN_TEMP_MIN = 32;          //人体温度上限
+    private final int ENV_GATE = 32;           //环境温度门限，使用方法：(ENV_TEMP_GATE,HUMAN_TEMP_MAX)区间内像素点数>50，说明有人体热源接近，不记录环境温度
 
     private int OBJ_TEMP_MAX = BACK_TEMP + (int)(HUMAN_TEMP_MAX*10.0*DECAY_RATE);
     private int OBJ_TEMP_MIN = BACK_TEMP + (int)(HUMAN_TEMP_MIN*10.0*DECAY_RATE);
+    private int ENV_TEMP_GATE = BACK_TEMP + (int)(ENV_GATE*10.0*DECAY_RATE);        //实际环温门限
     private final float objErrorTemp = 0.0f;                   //目标基准温度
     public float objTemp = 35.0f;                       //目标温度
     public float envTemp = 25.0f;                       //环境温度
@@ -66,6 +69,21 @@ public class IrTempSensor {
     public IrTempSensor setCallback(Callback callback) {
         this.mCallback = callback;
         return this;
+    }
+
+    /**
+     * 环境温度计算
+     */
+    private void envSet(float temp) {
+        envTemp = temp;
+        Log.i(TAG,"当前环境温度：" + temp + "℃");
+    }
+
+    /**
+     * 环境温度获取
+     */
+    public float envGet() {
+        return envTemp;
     }
 
     /**
@@ -102,17 +120,23 @@ public class IrTempSensor {
         mSerialPortManager = new SerialPortManager();
         mSerialPortManager.setOnSerialPortDataListener(new OnSerialPortDataListener(){
             public void onDataReceived(byte[] bytes){
-                //数据缓存，待解析
-                System.arraycopy(bytes, 0, sourceData, iLastEnd, bytes.length);
-                iLastEnd += bytes.length;
+                if(iLastEnd + bytes.length < sourceData.length) {
+                    //数据缓存，待解析
+                    System.arraycopy(bytes, 0, sourceData, iLastEnd, bytes.length);
+                    iLastEnd += bytes.length;
 
-                if(iLastEnd >= VALID_TEMP_LEN) {
-                    //                    Log.i(TAG,"收到长度="+iLastEnd);
-                    /**
-                     * 一次串口返回可能多次调用onDataReceived方法，是不好判断开始和结束的，需要自行断句，这里是通过iLastEnd来做的
-                     * processTemp: 对收到的数据进行处理
-                     * calculateObjTemp()：计算出最终温度
-                     */
+                    if (iLastEnd >= VALID_TEMP_LEN) {
+                        //                    Log.i(TAG,"收到长度="+iLastEnd);
+                        /**
+                         * 一次串口返回可能多次调用onDataReceived方法，是不好判断开始和结束的，需要自行断句，这里是通过iLastEnd来做的
+                         * processTemp: 对收到的数据进行处理
+                         * calculateObjTemp()：计算出最终温度
+                         */
+                    }
+                } else {
+                    Log.w(TAG,"iLastEnd=" + iLastEnd + ", len=" + bytes.length);
+                    Log.w(TAG,"缓冲区已满，无法接收新数据，清空缓冲区！");
+                    iLastEnd = 0;
                 }
             }
 
@@ -282,7 +306,9 @@ public class IrTempSensor {
     public void calculateObjTemp() {
         int doorStart = 0;  //阈值上限索引值
         int doorEnd = 0;    //阈值下限索引值
+        int envGate = 0;
         int temp = 0;
+        float envTemp = 25.0f;
 
         if(pixelList.size() == 0) {
             return;
@@ -300,6 +326,11 @@ public class IrTempSensor {
                 if(doorStart == 0) {
                     doorStart = i;
                 }
+
+                if(temp >= ENV_TEMP_GATE) {
+                    envGate ++;
+                }
+
                 if(temp > OBJ_TEMP_MIN) {
                     doorEnd = i;
                     continue;
@@ -315,9 +346,9 @@ public class IrTempSensor {
         if(doorStart + 40 < pixelList.size()) {
             pixelMaxValue = new StringBuilder("");
             Log.i(TAG, "阈值范围索引：" + doorStart + "~" + doorEnd);
-            Log.i(TAG, "阈值内像素点温度极大值:");
+            Log.d(TAG, "阈值内像素点温度极大值:");
             for (int i = doorStart; i < doorStart + OBJ_COVER_VALID_PIXEL; i++) {
-                Log.i(TAG, "pixelList[ " + i + "] = " + pixelList.get(i));
+                Log.d(TAG, "pixelList[ " + i + "] = " + pixelList.get(i));
                 pixelMaxValue.append(pixelList.get(i));
                 pixelMaxValue.append(" ");
             }
@@ -344,13 +375,32 @@ public class IrTempSensor {
             }
 
             //环境温度计算
-            int startIndex = pixelList.size() - 25;
-            sum = 0;
-            for (; startIndex < pixelList.size() - 5; startIndex++) {
-                sum += pixelList.get(startIndex);
+            if(envGate - doorStart <= 200) {
+                int startIndex = pixelList.size() - 25;
+                sum = 0;
+                for (; startIndex < pixelList.size() - 5; startIndex++) {
+                    sum += pixelList.get(startIndex);
+                }
+                envTemp = (float) (sum / 20 - BACK_TEMP) / 10;    //衰减
+                if(envTemp >= -30.0f && envTemp <= 50.0f) {
+                    Log.i(TAG, "瞬时环境温度envTemp = " + envTemp);
+                    envList.add(envTemp);
+                    if(envList.size() >= 30) {
+                        //去除极大值、极小值粗大误差，取中间值取平均
+                        Collections.sort(envList,Collections.<Float>reverseOrder());
+                        float sumEnv = 0.0f;
+                        for(int j=10;j<20;j++) {
+                            sumEnv += envList.get(j);
+                        }
+                        envSet(sumEnv/10.0f);
+                        envList.clear();
+                    }
+                } else {
+                    Log.i(TAG,"无效环境温度，异常值为:" + envTemp);
+                }
+            } else {
+                Log.i(TAG,"可能有人接近，暂不测环境温度");
             }
-            envTemp = (float) (sum / 20 - BACK_TEMP) / 10;    //衰减
-            Log.i(TAG, "环境温度envTemp = " + envTemp);
         } else {
             Log.e(TAG, "测量数据有误");
         }
