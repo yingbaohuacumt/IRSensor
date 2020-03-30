@@ -41,7 +41,7 @@ public class MainActivity extends AppCompatActivity{
     private static final int DISPLAY_HOT_IMAGE_FLAG = 3;
     private static final String LOG_PATH = "/DeviceMonitorLog/com.example.yingbh.serial";
     public LogBuilder builder;
-    private int runCnts = 0;
+    private int  runCnts = 0;
 
     //红外测温模块
     public IrTempSensor irTempSensor = new IrTempSensor();
@@ -50,12 +50,22 @@ public class MainActivity extends AppCompatActivity{
     public float envTemp = 0.0f;
     public float calTemp = 0.0f;
 
+    private static final int  pointNum = 5;
+    public int calNum = 0;
+    private int[]   tmpDistance = {0,0,0,0,0,0};
+    private float[] tmpCalTemp = {0.0f,0.0f,0.0f,0.0f,0.0f,0.0f};
+    private float   avrCalTemp = 0.0f;
+    private int     avrDistance = 0;
+    public String[] pixel[];
+    private StringBuilder buff1= new StringBuilder("");
+    private StringBuilder buff2= new StringBuilder("");
+    private StringBuilder buff3= new StringBuilder("");
     //测距模块
     public int objDistance = 50;
     public DistanceSensor distanceSensor = new DistanceSensor();
 
     //其它
-    private TextView tvTemp,tvEnvTemp,tvDistance, tvCalTemp;
+    private TextView tvTemp,tvEnvTemp,tvDistance, tvCalTemp,tvCalNum;
     private Button btnSample,btnClrLog;
     private boolean btnFlag = false;
 
@@ -101,7 +111,7 @@ public class MainActivity extends AppCompatActivity{
         btnSample = (Button) findViewById(R.id.btn_sample);
         btnClrLog = (Button) findViewById(R.id.btn_clr_log);
         tvCalTemp = (TextView)findViewById(R.id.tv_calTemp) ;
-
+        tvCalNum = (TextView)findViewById(R.id.tv_calNum);
         //热图配置
         map = findViewById(R.id.example_map);
         map.setMinimum(20.0);
@@ -146,7 +156,7 @@ public class MainActivity extends AppCompatActivity{
             public boolean handleMessage(Message msg) {
                 switch (msg.what) {
                     case UPDATE_TEMP_FLAG:
-                        Log.i(TAG,String.format("人脸温度(℃)：%.2f；?环境温度(℃)：%.2f", objTemp, envTemp));
+                        Log.i(TAG,String.format("人脸温度(℃)：%.2f；环境温度(℃)：%.2f", objTemp, envTemp));
                         tvTemp.setText(String.format("%.2f",objTemp));
                         tvEnvTemp.setText(String.format("%.2f",envTemp));
                         break;
@@ -155,6 +165,7 @@ public class MainActivity extends AppCompatActivity{
                         Log.i(TAG,String.format("校准后温度(℃)：%.2f", calTemp ));
 
                         tvDistance.setText(String.format("%d",objDistance));
+                        tvCalNum.setText(String.format("[%d]",calNum));
                         tvCalTemp.setText(String.format("%.2f",calTemp));
                         break;
                     case DISPLAY_HOT_IMAGE_FLAG:
@@ -199,9 +210,45 @@ public class MainActivity extends AppCompatActivity{
 
                                         calTemp = temp_cal(objTemp, ((float)objDistance)/10);
 
+                                        tmpCalTemp[calNum] = calTemp;
+                                        tmpDistance[calNum] = objDistance;
 
-                                        LogUtil.i(MainActivity.class,String.format(",脸温(℃),%.2f,环温(℃),%.2f,距离(mm),%d,校温(℃),%.2f,像素点温度极大值,%s"
-                                        , objTemp, envTemp, objDistance,calTemp,irTempSensor.pixelMaxValue));
+
+                                        buff1.append(String.format("\r\n,脸温(℃),%.2f,环温(℃),%.2f,距离(mm),%d,校温(℃),%.2f,像素点温度极大值,%s\r\n" , objTemp, envTemp, objDistance, calTemp, irTempSensor.pixelMaxValue));
+                                        Log.i(TAG, String.format("%d\r\n",calNum));
+                                        Log.i(TAG,buff1.toString());
+                                        calNum++;
+                                        if(calNum >= pointNum)
+                                        {
+                                            boolean flag = false;
+                                            int i = 1;
+                                            while(i< pointNum)
+                                            {
+                                                if( (Math.abs(tmpCalTemp[i] - tmpCalTemp[0]) < 0.3) &&
+                                                        (Math.abs(tmpDistance[i] - tmpDistance[0] ) < 30))
+                                                {
+                                                    flag = true;
+                                                    Log.i(TAG,"true");
+                                                }
+                                                else{
+                                                    flag = false;
+                                                    Log.i(TAG,"false");
+                                                    break;
+                                                }
+                                                i++;
+                                            }
+                                            if(flag == true){
+                                                avrCalTemp =calFloatSumAverage(tmpCalTemp,pointNum);
+                                                avrDistance = calIntFloatSumAverage(tmpDistance,pointNum);
+                                                Log.i(TAG,"-----write log ");
+                                                LogUtil.i("",buff1.toString());
+                                                LogUtil.i(MainActivity.class,String.format("平均距离(mm),%d,平均温度(℃),%.2f",avrDistance,avrCalTemp));
+                                            }
+                                            else
+                                                Log.i(TAG,"-----fail ");
+                                            calNum = 0;
+                                            buff1 = new StringBuilder("");
+                                        }
 
                                         runCnts++;
                                         if(runCnts%2 == 0) {
@@ -338,8 +385,26 @@ public class MainActivity extends AppCompatActivity{
         return (temp - fx(distance) + fx(50.00f));
     }
 
-    private float fx(float x){
-        return (float)(36.30024 - 0.07277 * x + 7.27922*Math.pow(10,-4)*Math.pow(x,2) - 2.44949*Math.pow(10,-6)*Math.pow(x,3));
+    private float fx(float x) {
+        //return (float)(36.30024 - 0.07277 * x + 7.27922*Math.pow(10,-4)*Math.pow(x,2) - 2.44949*Math.pow(10,-6)*Math.pow(x,3));
+        //return (float)(36.10493 + 0.04623 * x - 0.00154*Math.pow(x,2) + 9.5452*Math.pow(10,-6)*Math.pow(x,3));
+        // return (float)(36.13076 -0.04221 * x - 4.06591*Math.pow(10,-5)*Math.pow(x,2) + 2.0163*Math.pow(10,-6)*Math.pow(x,3));
+        return (float) (37.76075 - 0.03688 * x - 2.3927 * Math.pow(10, -4) * Math.pow(x, 2) + 3.77025 * Math.pow(10, -6) * Math.pow(x, 3));
+    }
+
+    private float calFloatSumAverage(float[] data, int num){
+        float sum = 0;
+        int i = 0;
+        for(;i<num;i++)
+            sum+= data[i];
+        return sum/num;
+    }
+    private int calIntFloatSumAverage(int[] data, int num){
+        int sum = 0;
+        int i = 0;
+        for(;i<num;i++)
+            sum+= data[i];
+        return sum/num;
     }
     /**
      * A native method that is implemented by the 'native-lib' native library,
