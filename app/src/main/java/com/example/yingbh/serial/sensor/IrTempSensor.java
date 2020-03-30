@@ -375,7 +375,7 @@ public class IrTempSensor {
             }
 
             //环境温度计算
-            if(envGate - doorStart <= 200) {
+            if(envGate - doorStart <= 500) {
                 int startIndex = pixelList.size() - 25;
                 sum = 0;
                 for (; startIndex < pixelList.size() - 5; startIndex++) {
