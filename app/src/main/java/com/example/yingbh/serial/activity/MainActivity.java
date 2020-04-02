@@ -296,7 +296,7 @@ public class MainActivity extends AppCompatActivity{
         map.clearData();
         if(irTempSensor.pixelListBackup.size() >= 1024) {
             float x,y,temp;
-            for (int line=0;line<32;line++) {
+            for (int line=5;line<32;line++) {       //屏蔽前5排可能异常数据点
                 for(int column=0;column<32;column++) {
                     y=(float)line/32.0f+0.015625f;
                     x=(float)column/32.0f+0.015625f;

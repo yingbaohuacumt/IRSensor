@@ -45,7 +45,8 @@ public class IrTempSensor {
     private final float objErrorTemp = 0.0f;                   //目标基准温度
     public float objTemp = 35.0f;                       //目标温度
     public float envTemp = 25.0f;                       //环境温度
-    private int OBJ_COVER_VALID_PIXEL = 20;             //遮挡场景有效的像素点数目
+    private int OBJ_NORMAL_VALID_PIXEL = 10;             //常规场景有效像素点数目
+    private int OBJ_COVER_VALID_PIXEL = 10;             //遮挡场景有效的像素点数目
     private float OBJ_COVER_TEMP_COMP = 0.0f;           //有遮挡场景补偿温度
     private float OBJ_NONE_COVER_TEMP_COMP = 0.0f;      //无遮挡场景补偿温度
     private int OBJ_PIXEL_GATE = 150;                   //像素点数目门限值，有遮挡/无遮挡场景区分
@@ -343,7 +344,7 @@ public class IrTempSensor {
 
         //人体温度计算
         doorStart += 3;
-        if(doorStart + 40 < pixelList.size()) {
+        if(doorStart + OBJ_NORMAL_VALID_PIXEL < pixelList.size()) {
             pixelMaxValue = new StringBuilder("");
             Log.i(TAG, "阈值范围索引：" + doorStart + "~" + doorEnd);
             Log.d(TAG, "阈值内像素点温度极大值:");
@@ -356,7 +357,7 @@ public class IrTempSensor {
             // 场景区分，false-无遮挡，true-有遮挡
             boolean scene = (doorEnd - doorStart + 1 >= OBJ_PIXEL_GATE) ? false : true;
             //无遮挡场景，有效像素点数目固定为40，有遮挡为OBJ_PIXEL_GATE
-            int areaLen = scene ? OBJ_COVER_VALID_PIXEL : 40;
+            int areaLen = scene ? OBJ_COVER_VALID_PIXEL : OBJ_NORMAL_VALID_PIXEL;
             int sum = 0;
             for (int index = 0; index < areaLen; index++) {
                 sum += pixelList.get(index + doorStart);
