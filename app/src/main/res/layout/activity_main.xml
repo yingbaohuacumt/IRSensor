@@ -82,7 +82,14 @@
             android:text="校准温度(℃):"
             android:textSize="40sp"
             android:layout_below="@+id/textView2"/>
-
+        <TextView
+            android:id="@+id/tv_calNum"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="[0]"
+            android:textSize="40sp"
+            android:layout_below="@+id/textView2"
+            android:layout_toRightOf="@+id/calTemp"/>
         <TextView
             android:id="@+id/tv_calTemp"
             android:layout_width="wrap_content"
@@ -90,7 +97,7 @@
             android:text="0"
             android:textSize="40sp"
             android:layout_below="@+id/textView2"
-            android:layout_toRightOf="@+id/calTemp"/>
+            android:layout_toRightOf="@+id/tv_calNum"/>
 
     </RelativeLayout>
 
