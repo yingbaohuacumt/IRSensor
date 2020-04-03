@@ -26,11 +26,36 @@
         android:gravity="center_horizontal">
 
         <TextView
+            android:id="@+id/tv_position"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="额温峰值坐标：L-   C-  "
+            android:textSize="40sp" />
+
+        <TextView
+            android:id="@+id/textView0"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="额     温(℃)："
+            android:textSize="40sp"
+            android:layout_below="@+id/tv_position"/>
+
+        <TextView
+            android:id="@+id/tv_forehand_temp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignBottom="@+id/textView0"
+            android:layout_toRightOf="@+id/textView0"
+            android:text="35.0"
+            android:textSize="40sp" />
+
+        <TextView
             android:id="@+id/textView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="人体温度(℃)："
-            android:textSize="40sp" />
+            android:textSize="40sp"
+            android:layout_below="@+id/textView0"/>
 
         <TextView
             android:id="@+id/tv_temp"
@@ -62,7 +87,7 @@
             android:id="@+id/textView2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="距离(mm)："
+            android:text="距     离(mm)："
             android:textSize="40sp"
             android:layout_below="@+id/textView1"/>
 
@@ -79,7 +104,7 @@
             android:id="@+id/calTemp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="校准温度(℃):"
+            android:text="校准温度(℃)："
             android:textSize="40sp"
             android:layout_below="@+id/textView2"/>
         <TextView
