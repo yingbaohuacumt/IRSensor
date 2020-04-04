@@ -205,9 +205,12 @@ public class MainActivity extends AppCompatActivity{
                                         distanceSensor.startDataSample();   // 获取距离
                                         Thread.sleep(400);
                                         if(irTempSensor.processTemp()) {
+                                            //原始脸温计算
                                             irTempSensor.calculateObjTemp();
                                             objTemp = irTempSensor.objTemp;
                                             envTemp = irTempSensor.envGet();
+                                            //额温计算
+                                            foreheadTempCalc(irTempSensor.pixelListBackup);
                                         }
                                         uiHandler.sendEmptyMessage(UPDATE_TEMP_FLAG);
 
@@ -221,7 +224,7 @@ public class MainActivity extends AppCompatActivity{
                                         tmpCalTemp[calNum] = calTemp;
                                         tmpDistance[calNum] = objDistance;
 
-                                        buff1.append(String.format("\r\n,脸温(℃),%.2f,环温(℃),%.2f,距离(mm),%d,校温(℃),%.2f,像素点温度极大值,%s\r\n" , objTemp, envTemp, objDistance, calTemp, irTempSensor.pixelMaxValue));
+                                        buff1.append(String.format("\r\n,脸温(℃),%.2f,环温(℃),%.2f,距离(mm),%d,校温(℃),%.2f,额温(℃),%.2f\r\n" , objTemp, envTemp, objDistance, calTemp,forehandTemp));
                                         Log.i(TAG, String.format("%d\r\n",calNum));
                                         Log.i(TAG,buff1.toString());
                                         calNum++;
@@ -264,8 +267,6 @@ public class MainActivity extends AppCompatActivity{
                                             uiHandler.sendEmptyMessage(DISPLAY_HOT_IMAGE_FLAG);
                                         }
 
-                                        //额温计算
-                                        foreheadTempCalc(irTempSensor.pixelListBackup);
                                         Thread.sleep(50);
                                     } catch (InterruptedException e) {
                                         e.printStackTrace();
@@ -332,12 +333,16 @@ public class MainActivity extends AppCompatActivity{
      */
     private void foreheadTempCalc(ArrayList<Integer> arrayList) {
         int[][] pixelValue = new int[32][32];
-        int line=0,column=0,sum=0,count=0,validCount=0;
-        int[][] lineAverageV = new int[32][2];  //行阈值内有效值平均+数目
+        int line=0,column=0,sum=0,count=0,validSum=0,validCount=0;
+        int[][] lineAverageV = new int[32][2];  //行整体平均+有效点数目
+        int[][] lineValidAverageV = new int[32][2];  //行阈值内有效点平均+有效点数目
         int centerLine = 0,centerColumn=0;      //额头峰值点坐标
         int value = 0;
-        StringBuilder averageValue = new StringBuilder("");
+        StringBuilder averageValue = new StringBuilder("");     //行整体平均值
+        StringBuilder validPixels = new StringBuilder("");      //行有效点数
+        StringBuilder validAverageValue = new StringBuilder("");//行有效点平均值
         int[] centerPixel = new int[9];
+        ArrayList<Integer> validTemps = new ArrayList<Integer>(9);
         int index=0;
 
         if(arrayList.size() < 1024) {
@@ -348,23 +353,32 @@ public class MainActivity extends AppCompatActivity{
         for(int i=0;i<5;i++) {
             lineAverageV[i][0] = 0;
             lineAverageV[i][1] = 0;
-            LogUtil.d(MainActivity.class, "第" + line + "行有效点数,"+ 0 + ",平均温度(x10)," + 0);
+            LogUtil.d(MainActivity.class, "第" + line + "行有效点数,"+ 0 + ",整体平均温度(x10)," + 0);
             averageValue.append(Integer.toString(0));
             averageValue.append(",");
+
+            validAverageValue.append(Integer.toString(0));
+            validAverageValue.append(",");
+
+            validPixels.append(Integer.toString(0));
+            validPixels.append(",");
         }
         for(int i=5*32;i<1024;i++) {
             line = i/32;
             column = i%32;
             pixelValue[line][column] = arrayList.get(i) - 2731;
+
             if(pixelValue[line][column] < 420) {    //剔除热源点
                 sum += pixelValue[line][column];
                 count++;
                 if(pixelValue[line][column] > 280) {
+                    validSum += pixelValue[line][column];
                     validCount++;   //人体阈值内有效温度点数加1
                 }
             }
             if(column == 31) {
                 if(validCount != 0) {
+                    //整体平均值
                     lineAverageV[line][0] = sum / count;    //剔除热源后整体平均值
                     lineAverageV[line][1] = validCount;
                     if (lineAverageV[line][0] > 420) {
@@ -372,22 +386,40 @@ public class MainActivity extends AppCompatActivity{
                         lineAverageV[line][1] = 0;
                     }
 
-                    LogUtil.d(MainActivity.class, "第" + line + "行有效点数,"+ validCount + ",平均温度(x10)," + lineAverageV[line][0]);
+                    //阈值内有效点平均值
+                    lineValidAverageV[line][0] = validSum/validCount;
+                    lineValidAverageV[line][1] = validCount;
+
+                    LogUtil.d(MainActivity.class, "第" + line + "行有效点数,"+ validCount + ",有效点平均温度," + lineValidAverageV[line][0] + ",整体平均温度(x10)," + lineAverageV[line][0]);
                 } else {
+                    //整体平均值
                     lineAverageV[line][0] = sum / count;
                     lineAverageV[line][1] = 0;
-                    LogUtil.d(MainActivity.class, "第" + line + "行有效点数,"+ 0 + ",平均温度(x10)," + lineAverageV[line][0]);
+                    LogUtil.d(MainActivity.class, "第" + line + "行有效点数,"+ 0 + ",有效点平均温度," + 0 + ",整体平均温度(x10)," + lineAverageV[line][0]);
+
+                    //阈值内有效点平均值
+                    lineValidAverageV[line][0] = 0;
+                    lineValidAverageV[line][1] = 0;
                 }
                 sum = 0;
                 count = 0;
                 validCount = 0;
+                validSum = 0;
 
                 averageValue.append(Integer.toString(lineAverageV[line][0]));
                 averageValue.append(",");
+
+                validAverageValue.append(Integer.toString(lineValidAverageV[line][0]));
+                validAverageValue.append(",");
+
+                validPixels.append(Integer.toString(lineValidAverageV[line][1]*10));
+                validPixels.append(",");
             }
         }
 
-        LogUtil.d(TAG_FOREHAND,"从上往下每行平均温度," + averageValue);
+        LogUtil.d(TAG_FOREHAND,"从上往下每行阈值内有效点数目(x10)," + validPixels);
+//        LogUtil.d(TAG_FOREHAND,"从上往下每行阈值内有效点平均温度," + validAverageValue);
+        LogUtil.d(TAG_FOREHAND,"从上往下每行去高温整体平均温度," + averageValue);
 
         //额温峰值点位置计算
         centerLine = peakPositionCalc(lineAverageV);
@@ -409,24 +441,65 @@ public class MainActivity extends AppCompatActivity{
             centerColumn -= 1;
         }
 
-        LogUtil.i(MainActivity.class,"额温峰值点位置：L=" + centerLine + ",C=" + centerColumn);
-        LogUtil.d(TAG_FOREHAND,"额温峰值点行," + centerLine + ",列," + centerColumn);
+        LogUtil.i(MainActivity.class,"额温峰值点位置：L=" + centerLine + ",C=" + centerColumn + ",点温," + pixelValue[centerLine][centerColumn]/(10 * irTempSensor.DECAY_RATE));
 
-        //额温计算
+        //额温计算,取中心点附近3*3矩阵
+//        line = centerLine-1;
+//        index=0;
+//        for(;line < centerLine+2;line++) {
+//            for(column = centerColumn-1;column < centerColumn+2;column++) {
+//                centerPixel[index++] = pixelValue[line][column];
+//                LogUtil.d(MainActivity.class,"额温计算用坐标," + index + ",line=" + line + ",column=" + column);
+//            }
+//        }
+//
+//        sum = 0;
+//        for(int i=0;i<9;i++) {
+//            sum+=centerPixel[i];
+//        }
+//        forehandTemp = (float) (sum / 9) /(10 * irTempSensor.DECAY_RATE);
+
         line = centerLine-1;
-        index=0;
-        for(;line < centerLine+2;line++) {
-            for(column = centerColumn-1;column < centerColumn+2;column++) {
-                centerPixel[index++] = pixelValue[line][column];
-                LogUtil.d(MainActivity.class,"额温计算用坐标," + index + ",line=" + line + ",column=" + column);
-            }
-        }
-
         sum = 0;
-        for(int i=0;i<9;i++) {
-            sum+=centerPixel[i];
+        for(;line < centerLine+2;line++) {
+            sum += pixelValue[line][centerColumn];
+            LogUtil.d(TAG_FOREHAND,"第" + line + "行,第" + centerColumn + "列,峰值点温度," + pixelValue[line][centerColumn]);
         }
-        forehandTemp = (float) (sum / 9) /(10 * irTempSensor.DECAY_RATE);
+        forehandTemp = (float) (sum / 3) /(10 * irTempSensor.DECAY_RATE);
+
+//        //额温计算，取中心点相邻行极大值附近3点
+//        line = centerLine-1;
+//        for(;line < centerLine+2;line++) {
+//            value = 0;
+//            //找出每行极大值列位置
+//            for(int i=0;i<32;i++) {
+//                if(value <= pixelValue[centerLine][i]) {
+//                    value = pixelValue[centerLine][i];
+//                    centerColumn = i;
+//                }
+//            }
+//            if(centerColumn == 0) {   //远离列边界
+//                centerColumn += 1;
+//            } else if(centerColumn == 31) {
+//                centerColumn -= 1;
+//            }
+//
+//            //取该行极大值左右共3个点
+//            for(column = centerColumn-1;column < centerColumn+2;column++) {
+//                validTemps.add(pixelValue[line][column]);
+//                LogUtil.d(TAG_FOREHAND,"第" + line + "行,第" + column + "列,峰值点温度," + pixelValue[line][column]);
+//            }
+//        }
+//        //像素点温度降序排列
+//        Collections.sort(validTemps,Collections.<Integer>reverseOrder());
+//        //剔除1个峰值，3个低值剩下取平均
+//        sum = 0;
+//        for(int i=1;i<validTemps.size()-3;i++) {
+//            sum+=validTemps.get(i);
+//        }
+//        forehandTemp = (float) (sum / (validTemps.size()-4)) /(10 * irTempSensor.DECAY_RATE);
+
+        LogUtil.d(TAG_FOREHAND,"额温峰值点行," + centerLine + ",列," + centerColumn + ",额温," + forehandTemp);
 
         //界面刷新
         posX = centerLine;
