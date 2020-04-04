@@ -3,10 +3,12 @@ package com.example.yingbh.serial.sensor;
 import android.util.Log;
 import com.common.pos.api.util.PosUtil;
 
+import com.example.yingbh.serial.activity.MainActivity;
 import com.kongqw.serialportlibrary.Device;
 import com.kongqw.serialportlibrary.SerialPortFinder;
 import com.kongqw.serialportlibrary.SerialPortManager;
 import com.kongqw.serialportlibrary.listener.OnSerialPortDataListener;
+import com.minivision.parameter.util.LogUtil;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -15,7 +17,8 @@ import java.util.Collections;
 public class IrTempSensor {
 
     private SerialPortManager mSerialPortManager;
-    private final String TAG = "SerialIrTemp";
+    private static final String TAG = "SerialIrTemp";
+    private static final String TAG_FOREHAND = "Forehand";
     private final String CMD_HEAD = "e1";                     //帧头
     private final String CMD_TEMP_GET = "eee10155fffcfdff";   //温度图像数据获取命令
     private final int VALID_TEMP_LEN = 2020;                  //正确数据帧长度，必须大于2000，推荐2030以上，别乱改！！
@@ -43,8 +46,11 @@ public class IrTempSensor {
     private int OBJ_TEMP_MIN = BACK_TEMP + (int)(HUMAN_TEMP_MIN*10.0*DECAY_RATE);
     private int ENV_TEMP_GATE = BACK_TEMP + (int)(ENV_GATE*10.0*DECAY_RATE);        //实际环温门限
     private final float objErrorTemp = 0.0f;                   //目标基准温度
-    public float objTemp = 35.0f;                       //目标温度
+    public float objTemp = 35.0f;                       //脸温
     public float envTemp = 25.0f;                       //环境温度
+    public float forehandTemp = 0.0f;                   //额温
+    public int forehandPosX=0,forehandPosY=0;
+
     private int OBJ_NORMAL_VALID_PIXEL = 10;             //常规场景有效像素点数目
     private int OBJ_COVER_VALID_PIXEL = 10;             //遮挡场景有效的像素点数目
     private float OBJ_COVER_TEMP_COMP = 0.0f;           //有遮挡场景补偿温度
@@ -407,6 +413,233 @@ public class IrTempSensor {
         }
     }
 
+
+    /**
+     * 额温计算
+     * @param arrayList
+     */
+    public float foreheadTempCalc() {
+        int[][] pixelValue = new int[32][32];
+        int line=0,column=0,sum=0,count=0,validSum=0,validCount=0;
+        int[][] lineAverageV = new int[32][2];  //行整体平均+有效点数目
+        int[][] lineValidAverageV = new int[32][2];  //行阈值内有效点平均+有效点数目
+        int[] maxPos = new int[2];
+        int centerLine = 0,centerColumn=0;      //额头峰值点坐标
+        int value = 0;
+        float temperature = 0.0f;
+        StringBuilder averageValue = new StringBuilder("");     //行整体平均值
+        StringBuilder validPixels = new StringBuilder("");      //行有效点数
+        StringBuilder validAverageValue = new StringBuilder("");//行有效点平均值
+        int[] centerPixel = new int[9];
+        ArrayList<Integer> validTemps = new ArrayList<Integer>(9);
+        int index=0;
+
+        if(pixelListBackup.size() < 1024) {
+            return temperature;
+        }
+
+        //计算每行有效平均温度并统计点数,剔除前五行（可能有错位数据）
+        for(int i=0;i<5;i++) {
+            lineAverageV[i][0] = 0;
+            lineAverageV[i][1] = 0;
+            LogUtil.d(MainActivity.class, "第" + line + "行有效点数,"+ 0 + ",整体平均温度(x10)," + 0);
+            averageValue.append(Integer.toString(0));
+            averageValue.append(",");
+
+            validAverageValue.append(Integer.toString(0));
+            validAverageValue.append(",");
+
+            validPixels.append(Integer.toString(0));
+            validPixels.append(",");
+        }
+        for(int i=5*32;i<1024;i++) {
+            line = i/32;
+            column = i%32;
+            pixelValue[line][column] = pixelListBackup.get(i) - 2731;
+
+            if(pixelValue[line][column] < 420) {    //剔除热源点
+                sum += pixelValue[line][column];
+                count++;
+                if(pixelValue[line][column] > 280) {
+                    validSum += pixelValue[line][column];
+                    validCount++;   //人体阈值内有效温度点数加1
+                }
+            } else {
+                //剔除高温点，重置为0度
+                pixelValue[line][column] = 0;
+            }
+            if(column == 31) {
+                if(validCount != 0) {
+                    //整体平均值
+                    lineAverageV[line][0] = sum / count;    //剔除热源后整体平均值
+                    lineAverageV[line][1] = validCount;
+                    if (lineAverageV[line][0] > 420) {
+                        lineAverageV[line][0] = 0;     //超出人体阈值，置为0
+                        lineAverageV[line][1] = 0;
+                    }
+
+                    //阈值内有效点平均值
+                    lineValidAverageV[line][0] = validSum/validCount;
+                    lineValidAverageV[line][1] = validCount;
+
+                    LogUtil.d(MainActivity.class, "第" + line + "行有效点数,"+ validCount + ",有效点平均温度," + lineValidAverageV[line][0] + ",整体平均温度(x10)," + lineAverageV[line][0]);
+                } else {
+                    //整体平均值
+                    lineAverageV[line][0] = sum / count;
+                    lineAverageV[line][1] = 0;
+                    LogUtil.d(MainActivity.class, "第" + line + "行有效点数,"+ 0 + ",有效点平均温度," + 0 + ",整体平均温度(x10)," + lineAverageV[line][0]);
+
+                    //阈值内有效点平均值
+                    lineValidAverageV[line][0] = 0;
+                    lineValidAverageV[line][1] = 0;
+                }
+                sum = 0;
+                count = 0;
+                validCount = 0;
+                validSum = 0;
+
+                averageValue.append(Integer.toString(lineAverageV[line][0]));
+                averageValue.append(",");
+
+                validAverageValue.append(Integer.toString(lineValidAverageV[line][0]));
+                validAverageValue.append(",");
+
+                validPixels.append(Integer.toString(lineValidAverageV[line][1]*10));
+                validPixels.append(",");
+            }
+        }
+
+        LogUtil.d(TAG_FOREHAND,"从上往下每行阈值内有效点数目(x10)," + validPixels);
+        //        LogUtil.d(TAG_FOREHAND,"从上往下每行阈值内有效点平均温度," + validAverageValue);
+        LogUtil.d(TAG_FOREHAND,"从上往下每行去高温整体平均温度," + averageValue);
+
+        //额温峰值点位置计算
+        maxPos = peakPositionCalc(lineAverageV);
+        centerLine = maxPos[0];
+        if(centerLine == 5) {   //远离行边界
+            centerLine += 1;
+        } else if(centerLine == 31) {
+            centerLine -= 1;
+        }
+
+        for(int i=0;i<32;i++) {
+            if(value <= pixelValue[centerLine][i]) {
+                value = pixelValue[centerLine][i];
+                centerColumn = i;
+            }
+        }
+        if(centerColumn == 0) {   //远离列边界
+            centerColumn += 1;
+        } else if(centerColumn == 31) {
+            centerColumn -= 1;
+        }
+
+        LogUtil.i(MainActivity.class,"额温峰值点位置：L=" + centerLine + ",C=" + centerColumn + ",点温," + pixelValue[centerLine][centerColumn]/(10 * DECAY_RATE));
+
+        //额温计算，取中心点相邻行极大值附近3点
+        line = centerLine-1;
+        for(;line < centerLine+2;line++) {
+            value = 0;
+            //找出每行极大值列位置
+            for(int i=0;i<32;i++) {
+                if(value <= pixelValue[centerLine][i]) {
+                    value = pixelValue[centerLine][i];
+                    centerColumn = i;
+                }
+            }
+            if(centerColumn == 0) {   //远离列边界
+                centerColumn += 1;
+            } else if(centerColumn == 31) {
+                centerColumn -= 1;
+            }
+
+            //取该行极大值左右共3个点
+            for(column = centerColumn-1;column < centerColumn+2;column++) {
+                validTemps.add(pixelValue[line][column]);
+                LogUtil.d(TAG_FOREHAND,"第" + line + "行,第" + column + "列,峰值点温度," + pixelValue[line][column]);
+            }
+        }
+        //像素点温度降序排列
+        Collections.sort(validTemps,Collections.<Integer>reverseOrder());
+        //剔除6个低值剩下取平均
+        sum = 0;
+        for(int i=0;i<validTemps.size()-6;i++) {
+            sum+=validTemps.get(i);
+        }
+        temperature = (float) (sum / (validTemps.size()-6)) /(10 * DECAY_RATE);
+
+        LogUtil.d(TAG_FOREHAND,"额温峰值点行," + centerLine + ",列," + centerColumn + ",额温," + forehandTemp);
+
+        forehandPosY = centerLine;
+        forehandPosX = centerColumn;
+
+        return temperature;
+    }
+
+    /**
+     * 额头峰值行位置计算
+     */
+    private int[] peakPositionCalc (int[][] data) {
+        int windowLen = 3;  //滑动窗口长度
+        int windowSum = 0;
+        int windowPointGate = windowLen*5;  //窗口有效点数门限值
+        int windowPointNum = 0;     //窗口有效像素点数目
+        int[] pixelSum = new int[32-windowLen+1];
+        int[] pointsSum = new int[32-windowLen+1];
+        int[] maxPos = new int[2];      //第1、2个峰值行
+        int value = 0;
+        StringBuilder windowValue = new StringBuilder("");
+
+        LogUtil.d(MainActivity.class,"窗口大小：" + windowLen);
+        //计算每个滑动窗口内的和值
+        for(int i=0;i<32-windowLen+1;i++) {
+            windowSum = 0;
+            windowPointNum = 0;
+            for(int j=0;j<windowLen;j++) {
+                windowSum += data[i+j][0];
+                windowPointNum += data[i+j][1];
+            }
+            pixelSum[i] = windowSum;
+            pointsSum[i] = windowPointNum;
+            LogUtil.d(MainActivity.class,"第" + i + "个窗口有效点数," + windowPointNum + ",和值(x10)," + windowSum);
+            windowValue.append(Integer.toString(windowSum));
+            windowValue.append(",");
+        }
+        LogUtil.d(TAG_FOREHAND,"从上往下窗口和值," + windowValue);
+
+        //查找第一个窗口和值最大的位置(额头)
+        int i=0;
+        for(i=0;i<32-windowLen;i++) {
+            if(value <= pixelSum[i]) {
+                value = pixelSum[i];
+                //判断是否大于后一个窗口值,且有效点数满足要求，是则为第一个窗口峰值
+                if(value>pixelSum[i+1] && pointsSum[i]>=windowPointGate) {
+                    break;
+                }
+            }
+        }
+        maxPos[0] = i + windowLen/2;   //取窗口中间值作为峰值行位置
+        LogUtil.i(MainActivity.class,"额头位置(第1个窗口峰值)为第" + maxPos[0] + "行");
+
+        //查找第二个窗口和值最大位置（嘴巴）
+        i += 5;     //尝试跳至口腔附近
+        if(i<32-windowLen) {
+            value = 0;
+            for(;i<32-windowLen;i++) {
+                if(value <= pixelSum[i]) {
+                    value = pixelSum[i];
+                    if(value>pixelSum[i+1] && pointsSum[i]>=windowPointGate) {
+                        break;
+                    }
+                }
+            }
+
+            maxPos[1] = i + windowLen/2;   //取窗口中间值作为峰值行位置
+            LogUtil.i(MainActivity.class,"嘴巴位置(第2个窗口峰值)为第" + maxPos[1] + "行");
+        }
+
+        return maxPos;
+    }
 
     /**
      * Hex字符串转byte

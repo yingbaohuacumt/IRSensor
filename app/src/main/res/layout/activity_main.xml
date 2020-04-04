@@ -36,7 +36,7 @@
             android:id="@+id/textView0"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="额     温(℃)："
+            android:text="测试额温(℃)："
             android:textSize="40sp"
             android:layout_below="@+id/tv_position"/>
 
@@ -53,7 +53,7 @@
             android:id="@+id/textView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="人体温度(℃)："
+            android:text="最终体温(℃)："
             android:textSize="40sp"
             android:layout_below="@+id/textView0"/>
 
