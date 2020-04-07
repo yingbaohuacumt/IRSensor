@@ -28,7 +28,9 @@ import com.example.yingbh.serial.sensor.DistanceSensor;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Random;
@@ -39,6 +41,7 @@ import ca.hss.heatmaplib.HeatMapMarkerCallback;
 public class MainActivity extends AppCompatActivity{
     private static final String TAG = "Sensor";
     private static final String TAG_FOREHAND = "Forehand";
+    private static final String TAG_FOREHAND_5 = "Forehand_5";
     private static final int UPDATE_TEMP_FLAG = 1;
     private static final int UPDATE_DISTANCE_FLAG = 2;
     private static final int DISPLAY_HOT_IMAGE_FLAG = 3;
@@ -55,16 +58,14 @@ public class MainActivity extends AppCompatActivity{
     public float forehandTemp = 0.0f;               //额温
     public float bodyTemp = 0.0f;                   //最终体温
 
-    private static final int  pointNum = 5;
+    private static final int  pointNum = 5; // 取几个点做平均
     public int calNum = 0;
     private int[]   tmpDistance = {0,0,0,0,0,0};
     private float[] tmpCalTemp = {0.0f,0.0f,0.0f,0.0f,0.0f,0.0f};
     private float   avrCalTemp = 0.0f;
     private int     avrDistance = 0;
-    public String[] pixel[];
     private StringBuilder buff1= new StringBuilder("");
-    private StringBuilder buff2= new StringBuilder("");
-    private StringBuilder buff3= new StringBuilder("");
+
     //测距模块
     public int objDistance = 50;
     public DistanceSensor distanceSensor = new DistanceSensor();
@@ -81,7 +82,9 @@ public class MainActivity extends AppCompatActivity{
     //热力图
     private HeatMap map;
     private boolean testAsync = true;
+
     private int forehandPosX=0,forehandPosY=0;
+
 
     // Used to load the 'native-lib' library on application startup.
     static {
@@ -164,11 +167,11 @@ public class MainActivity extends AppCompatActivity{
                         break;
                     case UPDATE_DISTANCE_FLAG:
                         Log.i(TAG,"人脸距离：" + objDistance + "mm");
-                        Log.i(TAG,String.format("校准后温度(℃)：%.2f", calTemp ));
+                        Log.i(TAG,String.format("校准后温度(℃)：%.2f", avrCalTemp ));
 
                         tvDistance.setText(String.format("%d",objDistance));
                         tvCalNum.setText(String.format("[%d]",calNum));
-                        tvCalTemp.setText(String.format("%.2f",calTemp));
+                        tvCalTemp.setText(String.format("%.1f",avrCalTemp));
                         break;
                     case DISPLAY_HOT_IMAGE_FLAG:
                         Log.i(TAG,"热成像图显示");
@@ -203,6 +206,7 @@ public class MainActivity extends AppCompatActivity{
                                             irTempSensor.calculateObjTemp();
                                             faceTemp = irTempSensor.objTemp;
                                             envTemp = irTempSensor.envGet();
+
                                             //额温计算
                                             forehandTemp = irTempSensor.foreheadTempCalc();
                                             forehandPosX = irTempSensor.forehandPosX;
@@ -222,45 +226,102 @@ public class MainActivity extends AppCompatActivity{
                                             uiHandler.sendEmptyMessage(UPDATE_DISTANCE_FLAG);
                                         }
 
-                                        calTemp = temp_cal(faceTemp, ((float)objDistance)/10);
+                                        if(objDistance < 1200) {
+                                            // 原始温度数据打印
+                                            StringBuilder pixelBuff= new StringBuilder("");
+                                            pixelBuff.append("原始温度数据点数:"+irTempSensor.pixelListBackup.size()+"\r\n");
+                                            for(int num = 0; num < irTempSensor.pixelListBackup.size(); num++){
+                                                if(num%32 == 0){
+                                                    pixelBuff= new StringBuilder("");
+                                                    pixelBuff.append("\r\n"+(num)+"-"+(num+31)+":");
+                                                }
+                                                pixelBuff.append(String.format(",%d",irTempSensor.pixelListBackup.get(num)));
+                                                if((num+1)%32 == 0)  {
+                                                    LogUtil.i("",pixelBuff.toString());
+                                                }
+                                            }
 
-                                        tmpCalTemp[calNum] = calTemp;
-                                        tmpDistance[calNum] = objDistance;
+                                            calTemp = temp_cal(forehandTemp, ((float) objDistance) / 10);
 
-                                        buff1.append(String.format("\r\n,脸温(℃),%.2f,环温(℃),%.2f,距离(mm),%d,校温(℃),%.2f,额温(℃),%.2f,最终体温(℃),%.2f\r\n" , faceTemp, envTemp, objDistance, calTemp, forehandTemp, bodyTemp));
-                                        Log.i(TAG, String.format("%d\r\n",calNum));
-                                        Log.i(TAG,buff1.toString());
-                                        calNum++;
-                                        if(calNum >= pointNum)
-                                        {
-                                            boolean flag = false;
-                                            int i = 1;
-                                            while(i< pointNum)
-                                            {
-                                                if( (Math.abs(tmpCalTemp[i] - tmpCalTemp[0]) < 0.3) &&
+                                            tmpCalTemp[calNum] = calTemp;
+                                            tmpDistance[calNum] = objDistance;
+
+                                            buff1.append(String.format("\r\n,脸温(℃),%.2f,环温(℃),%.2f,距离(mm),%d,校温(℃),%.2f,额温(℃),%.2f,最终体温(℃),%.1f,取5点温度,%.2f,,%.2f\r\n",
+                                                    faceTemp, envTemp, objDistance, calTemp, forehandTemp, bodyTemp, irTempSensor.ForehandTemp_5point, irTempSensor.ForehandTemp_5point_1));
+                                            Log.i(TAG, String.format("-----------------------%d\r\n", calNum));
+
+                                            calNum++;
+                                            if (calNum >= pointNum) {
+                                                boolean flag = true;
+                                                int i = 1;
+                                                while (i < pointNum) {
+                                                    if( (Math.abs(tmpCalTemp[i] - tmpCalTemp[0]) < 0.3) &&
                                                         (Math.abs(tmpDistance[i] - tmpDistance[0] ) < 30))
-                                                {
-                                                    flag = true;
-                                                    Log.i(TAG,"true");
+//                                                    if(Math.abs(tmpDistance[i] - tmpDistance[0] ) < 30) // 只限制距离
+                                                    {
+                                                         Log.i(TAG,"true");
+                                                    }
+                                                    else{
+                                                        flag = false;
+                                                       // Log.i(TAG,"false");
+                                                        break;
+                                                    }
+                                                    i++;
                                                 }
-                                                else{
-                                                    flag = false;
-                                                    Log.i(TAG,"false");
-                                                    break;
+
+                                                if (flag == true) {
+                                                    // 剔除最大值温度和最小值温度，然后取平均温度和距离
+//                                                int minNum = 0, maxNum = 0;
+//                                                float minTemp = tmpCalTemp[0];
+//                                                float maxTemp = tmpCalTemp[0];
+//                                                for(int j = 1; j < pointNum;j++){   // 查找最大和最小值
+//                                                    if(tmpCalTemp[j] < minTemp){
+//                                                        minTemp = tmpCalTemp[j];
+//                                                        minNum = j;
+//                                                    }
+//                                                    if(tmpCalTemp[j] >maxTemp){
+//                                                        maxTemp = tmpCalTemp[j];
+//                                                        maxNum = j;
+//                                                    }
+//                                                }
+                                                    StringBuilder caltempList = new StringBuilder("");
+                                                    StringBuilder distanceList = new StringBuilder("");
+                                                    StringBuilder avrBuff = new StringBuilder("");
+
+                                                    // 计算平均值
+                                                    avrCalTemp = calFloatSumAverage(tmpCalTemp, pointNum);
+                                                    avrDistance = calIntFloatSumAverage(tmpDistance, pointNum);
+
+//                                                caltempList.append(String.format(",温度最大点位置,%d,最小点位置,%d,数据->,%.2f,%.2f,%.2f,%.2f,%.2f",
+//                                                        maxNum,minNum,tmpCalTemp[0],tmpCalTemp[1],tmpCalTemp[2],tmpCalTemp[3],tmpCalTemp[4]));
+//                                                distanceList.append(String.format(",对应距离最大点位置,%d,最小点位置,%d,数据->,%d,%d,%d,%d,%d" ,
+//                                                                maxNum,minNum,tmpDistance[0],tmpDistance[1],tmpDistance[2],tmpDistance[3],tmpDistance[4]));
+//                                                Log.i(TAG,caltempList.toString());
+//                                                Log.i(TAG,distanceList.toString());
+//                                                LogUtil.i(MainActivity.class,caltempList.toString());
+//                                                LogUtil.i(MainActivity.class,distanceList.toString());
+
+//                                                float avrCalTemp2 = calFloatSumAverage_x(tmpCalTemp,pointNum, tmpCalTemp[minNum],tmpCalTemp[maxNum]) ;
+//                                                int avrDistance2 = avrDistance = calIntFloatSumAverage_x(tmpDistance,pointNum,tmpDistance[minNum],tmpDistance[maxNum]);
+
+//                                                avrBuff.append(String.format(",平均距离(mm),%d,平均温度(℃),%.2f,平均距离2(mm),%d,平均温度2(℃),%.2f,",
+//                                                avrDistance,avrCalTemp,avrDistance2,avrCalTemp2));
+
+                                                    avrBuff.append(String.format(",%d次取平均：平均距离(mm),%d,平均温度(℃),%.1f,",pointNum, avrDistance, avrCalTemp));
+
+                                                    Log.i(TAG, avrBuff.toString());
+                                                    Log.i(TAG, buff1.toString());
+
+                                                    LogUtil.i(MainActivity.class, avrBuff.toString());
+                                                    LogUtil.i(MainActivity.class, buff1.toString());
+
+                                                } else {
+                                                    //Log.i(TAG, "-----fail ");
                                                 }
-                                                i++;
+                                                calNum = 0;
+                                                buff1 = new StringBuilder("");
+
                                             }
-                                            if(flag == true){
-                                                avrCalTemp =calFloatSumAverage(tmpCalTemp,pointNum);
-                                                avrDistance = calIntFloatSumAverage(tmpDistance,pointNum);
-                                                Log.i(TAG,"-----write log ");
-                                                LogUtil.i("",buff1.toString());
-                                                LogUtil.i(MainActivity.class,String.format("平均距离(mm),%d,平均温度(℃),%.2f",avrDistance,avrCalTemp));
-                                            }
-                                            else
-                                                Log.i(TAG,"-----fail ");
-                                            calNum = 0;
-                                            buff1 = new StringBuilder("");
                                         }
 
                                         runCnts++;
@@ -270,7 +331,10 @@ public class MainActivity extends AppCompatActivity{
                                             uiHandler.sendEmptyMessage(DISPLAY_HOT_IMAGE_FLAG);
                                         }
 
+                                        LogUtil.i("",",-------------------数据分割---------------------------------");
+
                                         Thread.sleep(50);
+                                        Thread.sleep(450);
                                     } catch (InterruptedException e) {
                                         e.printStackTrace();
                                     }
@@ -359,7 +423,12 @@ public class MainActivity extends AppCompatActivity{
                 for(int column=0;column<32;column++) {
                     y=(float)line/32.0f+0.015625f;      //平移0.5dp显示
                     x=(float)column/32.0f+0.015625f;
-                    temp = (float) (irTempSensor.pixelListBackup.get(line*32+column) - 2731)/10.0f;
+                    if((line == forehandPosY) &&(column == forehandPosX)){    // mq add 显示中心位置
+                        temp = 255.0f;
+                    }
+                    else {
+                        temp = (float) (irTempSensor.pixelListBackup.get(line * 32 + column) - 2731) / 10.0f;
+                    }
                     if(temp > 20.0f) {  //高于底溫才顯示
                         HeatMap.DataPoint point = new HeatMap.DataPoint(x, y, temp);
                         map.addData(point);
@@ -396,14 +465,17 @@ public class MainActivity extends AppCompatActivity{
 
     private float temp_cal(float temp, float distance)
     {
-        return (temp - fx(distance) + fx(50.00f));
+        return (temp - fx(distance) + fx(50.00f)  + 0.7f);
+        //return fx(distance);
     }
 
     private float fx(float x) {
         //return (float)(36.30024 - 0.07277 * x + 7.27922*Math.pow(10,-4)*Math.pow(x,2) - 2.44949*Math.pow(10,-6)*Math.pow(x,3));
         //return (float)(36.10493 + 0.04623 * x - 0.00154*Math.pow(x,2) + 9.5452*Math.pow(10,-6)*Math.pow(x,3));
         // return (float)(36.13076 -0.04221 * x - 4.06591*Math.pow(10,-5)*Math.pow(x,2) + 2.0163*Math.pow(10,-6)*Math.pow(x,3));
-        return (float) (37.76075 - 0.03688 * x - 2.3927 * Math.pow(10, -4) * Math.pow(x, 2) + 3.77025 * Math.pow(10, -6) * Math.pow(x, 3));
+       // return (float) (37.76075 - 0.03688 * x - 2.3927 * Math.pow(10, -4) * Math.pow(x, 2) + 3.77025 * Math.pow(10, -6) * Math.pow(x, 3));
+        //return (float) (37.06443 - 0.028 * x + 1.69379 * Math.pow(10, -4) * Math.pow(x, 2) -1.15568 * Math.pow(10, -6) * Math.pow(x, 3));
+        return (float) (36.94639 - 0.01847 * x - 5.61219 * Math.pow(10, -5) * Math.pow(x, 2) +2.93826 * Math.pow(10, -7) * Math.pow(x, 3));
     }
 
     private float calFloatSumAverage(float[] data, int num){
@@ -413,12 +485,27 @@ public class MainActivity extends AppCompatActivity{
             sum+= data[i];
         return sum/num;
     }
+    private float calFloatSumAverage_x(float[] data, int num, float Min, float Max){
+        float sum = 0;
+        int i = 0;
+        for(;i<num;i++)
+            sum+= data[i];
+        return (sum - Max - Min)/(num-2);
+    }
+
     private int calIntFloatSumAverage(int[] data, int num){
         int sum = 0;
         int i = 0;
         for(;i<num;i++)
             sum+= data[i];
         return sum/num;
+    }
+    private int calIntFloatSumAverage_x(int[] data, int num, int Min, int Max){
+        int sum = 0;
+        int i = 0;
+        for(;i<num;i++)
+            sum+= data[i];
+        return (sum - Max - Min)/(num-2);
     }
     /**
      * A native method that is implemented by the 'native-lib' native library,
