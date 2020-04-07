@@ -28,7 +28,7 @@ public class IrTempSensor {
     private boolean sensorMarkFlag = false;              //模组编号标记
     private byte[] sourceData = new byte[4096];          //温度图像数据缓存
     private int iLastEnd = 0;                            //数据缓存区尾地址
-    private ArrayList<Integer> pixelList = new ArrayList<>();    //像素点温度
+    public ArrayList<Integer> pixelList = new ArrayList<>();    //像素点温度
     public ArrayList<Integer> pixelListBackup = new ArrayList<>(1024);    //像素点温度备份
     public StringBuilder pixelMaxValue = new StringBuilder("");
     private ArrayList<Float> envList = new ArrayList<>(30);     //环境温度缓存表
@@ -37,6 +37,7 @@ public class IrTempSensor {
      * PRD1.0.6：将补偿系数默认值调整为1
      */
     public float DECAY_RATE = 0.954f;               //默认红外衰减率0.96 -> 0.954
+
     private final int BACK_TEMP = 2731;             //本底温度
     private final int HUMAN_TEMP_MAX = 42;          //人体温度上限
     private final int HUMAN_TEMP_MIN = 32;          //人体温度上限
@@ -48,14 +49,21 @@ public class IrTempSensor {
     private final float objErrorTemp = 0.0f;                   //目标基准温度
     public float objTemp = 35.0f;                       //脸温
     public float envTemp = 25.0f;                       //环境温度
+
     public float forehandTemp = 0.0f;                   //额温
     public int forehandPosX=0,forehandPosY=0;
 
+
     private int OBJ_NORMAL_VALID_PIXEL = 10;             //常规场景有效像素点数目
+
     private int OBJ_COVER_VALID_PIXEL = 10;             //遮挡场景有效的像素点数目
     private float OBJ_COVER_TEMP_COMP = 0.0f;           //有遮挡场景补偿温度
     private float OBJ_NONE_COVER_TEMP_COMP = 0.0f;      //无遮挡场景补偿温度
     private int OBJ_PIXEL_GATE = 150;                   //像素点数目门限值，有遮挡/无遮挡场景区分
+
+    // mq add
+    public float ForehandTemp_5point = 0.0f;
+    public float ForehandTemp_5point_1 = 0.0f;
     /**
      * 构造函数
      */
@@ -280,6 +288,7 @@ public class IrTempSensor {
 
                 pixelList.clear();
                 pixelListBackup.clear();
+
                 int[] iData = byteArrayToIntArray(sourceData, iLastEnd);
                 int pixLen = 1000;
                 iStart = iLastEnd - 6 - 2000 - 1;   //取剩余的1000个点
@@ -566,13 +575,38 @@ public class IrTempSensor {
         for(int i=0;i<validTemps.size()-6;i++) {
             sum+=validTemps.get(i);
         }
-        temperature = (float) (sum / (validTemps.size()-6)) /(10 * DECAY_RATE);
+        temperature = (float) ((float)sum / (float)(validTemps.size()-6)) /(10 * DECAY_RATE);
 
-        LogUtil.d(TAG_FOREHAND,"额温峰值点行," + centerLine + ",列," + centerColumn + ",额温," + forehandTemp);
+        LogUtil.d(TAG_FOREHAND,"额温峰值点行," + centerLine + ",列," + centerColumn + ",额温," + temperature);
 
         forehandPosY = centerLine;
         forehandPosX = centerColumn;
 
+        //        /*--------------mq add ： 取中心上下左右5点数据值-------------*/
+        int summ = 0;
+        int max_summ = 0;
+        int x=2;
+        int centerLine5 = centerLine;
+        int centerColumn5 = 0;
+        for(;x<30;x++) {
+            summ = pixelValue[centerLine5][x-1] + pixelValue[centerLine5][x] + pixelValue[centerLine5][x+1] + pixelValue[centerLine5-1][x] + pixelValue[centerLine5+1][x];
+            if(summ > max_summ )
+            {
+                max_summ = summ;
+                centerColumn5 = x;
+            }
+        }
+
+        LogUtil.d(TAG_FOREHAND,"5点取值，第" + (centerLine5-1) + "行,第" + centerColumn5 + "列,5点峰值点温度," + pixelValue[centerLine5-1][centerColumn5]);
+        LogUtil.d(TAG_FOREHAND,"5点取值，第" + (centerLine5) + "行,第" + (centerColumn5-1) + "列,5点峰值点温度," + pixelValue[centerLine5][centerColumn5-1]);
+        LogUtil.d(TAG_FOREHAND,"5点取值，第" + (centerLine5) + "行,第" + (centerColumn5) + "列,5点峰值点温度," + pixelValue[centerLine5][centerColumn5]);
+        LogUtil.d(TAG_FOREHAND,"5点取值，第" + (centerLine5) + "行,第" + (centerColumn5+1) + "列,5点峰值点温度," + pixelValue[centerLine5][centerColumn5+1]);
+        LogUtil.d(TAG_FOREHAND,"5点取值，第" + (centerLine5+1) + "行,第" + (centerColumn5) + "列,5点峰值点温度," + pixelValue[centerLine5+1][centerColumn5]);
+        int tempSum = 0;
+        tempSum = pixelValue[centerLine5-1][centerColumn5] + pixelValue[centerLine5][centerColumn5-1] + pixelValue[centerLine5][centerColumn5]+ pixelValue[centerLine5][centerColumn5+1]+ pixelValue[centerLine5+1][centerColumn5];
+        ForehandTemp_5point = (float) ((tempSum / 5.0) /(10.0 * DECAY_RATE));   // mq 修改3 -> 3.0  10->10.0
+        ForehandTemp_5point_1 =  (float)((float)(pixelValue[centerLine5-1][centerColumn5] ) /(10.0 * DECAY_RATE));
+        LogUtil.d(TAG_FOREHAND,"5点取值，额温峰值点行," + centerLine5 + ",列," + centerColumn5 +  ",额温," + ForehandTemp_5point_1);
         return temperature;
     }
 
