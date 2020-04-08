@@ -157,13 +157,20 @@ public class MainActivity extends AppCompatActivity{
                 switch (msg.what) {
                     case UPDATE_TEMP_FLAG:
                         Log.i(TAG,String.format("额温(℃),%.2f,脸温(℃),%.2f,体温(℃),%.2f,环温(℃),%.2f", forehandTemp, faceTemp, bodyTemp, envTemp));
-                        tvTemp.setText(String.format("%.2f",bodyTemp));
-                        tvEnvTemp.setText(String.format("%.2f",envTemp));
 
-                        String message = "";
-                        message = "额温峰值坐标：L-" + Integer.toString(forehandPosY) + "  C-" + Integer.toString(forehandPosX);
-                        tvPosition.setText(message);
-                        tvForehandTemp.setText(String.format("%.2f",forehandTemp));
+                        if(bodyTemp > 33.0f) {
+                            tvTemp.setText(String.format("%.2f",bodyTemp));
+                            tvEnvTemp.setText(String.format("%.2f",envTemp));
+
+                            String message = "";
+                            message = "额温峰值坐标：L-" + Integer.toString(forehandPosY) + "  C-" + Integer.toString(forehandPosX);
+                            tvPosition.setText(message);
+                            tvForehandTemp.setText(String.format("%.2f",forehandTemp));
+                        } else {
+                            tvTemp.setText("0");
+                            tvForehandTemp.setText("0");
+                        }
+
                         break;
                     case UPDATE_DISTANCE_FLAG:
                         Log.i(TAG,"人脸距离：" + objDistance + "mm");

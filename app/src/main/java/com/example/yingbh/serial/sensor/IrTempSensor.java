@@ -585,31 +585,6 @@ public class IrTempSensor {
         forehandPosY = centerLine;
         forehandPosX = centerColumn;
 
-//        //        /*--------------mq add ： 取中心上下左右5点数据值-------------*/
-//        int summ = 0;
-//        int max_summ = 0;
-//        int x=2;
-//        int centerLine5 = centerLine;
-//        int centerColumn5 = 0;
-//        for(;x<30;x++) {
-//            summ = pixelValue[centerLine5][x-1] + pixelValue[centerLine5][x] + pixelValue[centerLine5][x+1] + pixelValue[centerLine5-1][x] + pixelValue[centerLine5+1][x];
-//            if(summ > max_summ )
-//            {
-//                max_summ = summ;
-//                centerColumn5 = x;
-//            }
-//        }
-//
-//        LogUtil.d(TAG_FOREHAND,"5点取值，第" + (centerLine5-1) + "行,第" + centerColumn5 + "列,5点峰值点温度," + pixelValue[centerLine5-1][centerColumn5]);
-//        LogUtil.d(TAG_FOREHAND,"5点取值，第" + (centerLine5) + "行,第" + (centerColumn5-1) + "列,5点峰值点温度," + pixelValue[centerLine5][centerColumn5-1]);
-//        LogUtil.d(TAG_FOREHAND,"5点取值，第" + (centerLine5) + "行,第" + (centerColumn5) + "列,5点峰值点温度," + pixelValue[centerLine5][centerColumn5]);
-//        LogUtil.d(TAG_FOREHAND,"5点取值，第" + (centerLine5) + "行,第" + (centerColumn5+1) + "列,5点峰值点温度," + pixelValue[centerLine5][centerColumn5+1]);
-//        LogUtil.d(TAG_FOREHAND,"5点取值，第" + (centerLine5+1) + "行,第" + (centerColumn5) + "列,5点峰值点温度," + pixelValue[centerLine5+1][centerColumn5]);
-//        int tempSum = 0;
-//        tempSum = pixelValue[centerLine5-1][centerColumn5] + pixelValue[centerLine5][centerColumn5-1] + pixelValue[centerLine5][centerColumn5]+ pixelValue[centerLine5][centerColumn5+1]+ pixelValue[centerLine5+1][centerColumn5];
-//        ForehandTemp_5point = (float) ((tempSum / 5.0) /(10.0 * DECAY_RATE));   // mq 修改3 -> 3.0  10->10.0
-//        ForehandTemp_5point_1 =  (float)((float)(pixelValue[centerLine5-1][centerColumn5] ) /(10.0 * DECAY_RATE));
-//        LogUtil.d(TAG_FOREHAND,"5点取值，额温峰值点行," + centerLine5 + ",列," + centerColumn5 +  ",额温," + ForehandTemp_5point_1);
         return temperature;
     }
 
