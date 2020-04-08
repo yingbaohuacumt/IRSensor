@@ -1,6 +1,14 @@
 apply plugin: 'com.android.application'
 
 android {
+    signingConfigs {
+        config {
+            keyAlias 'yingbh'
+            keyPassword '123456'
+            storeFile file('C:/Users/yingbh/.android/release.jks')
+            storePassword '123456'
+        }
+    }
     compileSdkVersion 29
     defaultConfig {
         applicationId "com.example.yingbh.serial"
@@ -19,6 +27,7 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.config
         }
     }
     repositories {

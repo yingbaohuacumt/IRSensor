@@ -67,7 +67,7 @@ public class MainActivity extends AppCompatActivity{
     private StringBuilder buff1= new StringBuilder("");
 
     //测距模块
-    public int objDistance = 50;
+    public int objDistance = 0;
     public DistanceSensor distanceSensor = new DistanceSensor();
 
     //其它
@@ -227,19 +227,19 @@ public class MainActivity extends AppCompatActivity{
                                         }
 
                                         if(objDistance < 1200) {
-                                            // 原始温度数据打印
-                                            StringBuilder pixelBuff= new StringBuilder("");
-                                            pixelBuff.append("原始温度数据点数:"+irTempSensor.pixelListBackup.size()+"\r\n");
-                                            for(int num = 0; num < irTempSensor.pixelListBackup.size(); num++){
-                                                if(num%32 == 0){
-                                                    pixelBuff= new StringBuilder("");
-                                                    pixelBuff.append("\r\n"+(num)+"-"+(num+31)+":");
-                                                }
-                                                pixelBuff.append(String.format(",%d",irTempSensor.pixelListBackup.get(num)));
-                                                if((num+1)%32 == 0)  {
-                                                    LogUtil.i("",pixelBuff.toString());
-                                                }
-                                            }
+//                                            // 原始温度数据打印
+//                                            StringBuilder pixelBuff= new StringBuilder("");
+//                                            pixelBuff.append("原始温度数据点数:"+irTempSensor.pixelListBackup.size()+"\r\n");
+//                                            for(int num = 0; num < irTempSensor.pixelListBackup.size(); num++){
+//                                                if(num%32 == 0){
+//                                                    pixelBuff= new StringBuilder("");
+//                                                    pixelBuff.append("\r\n"+(num)+"-"+(num+31)+":");
+//                                                }
+//                                                pixelBuff.append(String.format(",%d",irTempSensor.pixelListBackup.get(num)));
+//                                                if((num+1)%32 == 0)  {
+//                                                    LogUtil.i("",pixelBuff.toString());
+//                                                }
+//                                            }
 
                                             calTemp = temp_cal(forehandTemp, ((float) objDistance) / 10);
 
@@ -248,7 +248,7 @@ public class MainActivity extends AppCompatActivity{
 
                                             buff1.append(String.format("\r\n,脸温(℃),%.2f,环温(℃),%.2f,距离(mm),%d,校温(℃),%.2f,额温(℃),%.2f,最终体温(℃),%.1f,取5点温度,%.2f,,%.2f\r\n",
                                                     faceTemp, envTemp, objDistance, calTemp, forehandTemp, bodyTemp, irTempSensor.ForehandTemp_5point, irTempSensor.ForehandTemp_5point_1));
-                                            Log.i(TAG, String.format("-----------------------%d\r\n", calNum));
+                                            LogUtil.i(TAG, String.format("-----------------------%d\r\n", calNum));
 
                                             calNum++;
                                             if (calNum >= pointNum) {
@@ -435,6 +435,8 @@ public class MainActivity extends AppCompatActivity{
                     }
                 }
             }
+        } else {
+            Log.w(TAG, "数据点过少，无法绘制热图！");
         }
 
     }
