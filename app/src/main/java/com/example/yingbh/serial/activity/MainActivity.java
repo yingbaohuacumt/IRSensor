@@ -227,19 +227,19 @@ public class MainActivity extends AppCompatActivity{
                                         }
 
                                         if(objDistance < 1200) {
-//                                            // 原始温度数据打印
-//                                            StringBuilder pixelBuff= new StringBuilder("");
-//                                            pixelBuff.append("原始温度数据点数:"+irTempSensor.pixelListBackup.size()+"\r\n");
-//                                            for(int num = 0; num < irTempSensor.pixelListBackup.size(); num++){
-//                                                if(num%32 == 0){
-//                                                    pixelBuff= new StringBuilder("");
-//                                                    pixelBuff.append("\r\n"+(num)+"-"+(num+31)+":");
-//                                                }
-//                                                pixelBuff.append(String.format(",%d",irTempSensor.pixelListBackup.get(num)));
-//                                                if((num+1)%32 == 0)  {
-//                                                    LogUtil.i("",pixelBuff.toString());
-//                                                }
-//                                            }
+                                            // 原始温度数据打印
+                                            StringBuilder pixelBuff= new StringBuilder("");
+                                            pixelBuff.append("原始温度数据点数:"+irTempSensor.pixelListBackup.size()+"\r\n");
+                                            for(int num = 4*32; num < irTempSensor.pixelListBackup.size(); num++){
+                                                if(num%32 == 0){
+                                                    pixelBuff= new StringBuilder("");
+                                                    pixelBuff.append("\r\n"+(num)+"-"+(num+31)+":");
+                                                }
+                                                pixelBuff.append(String.format(",%d",irTempSensor.pixelListBackup.get(num)));
+                                                if((num+1)%32 == 0)  {
+                                                    LogUtil.i("",pixelBuff.toString());
+                                                }
+                                            }
 
                                             calTemp = temp_cal(forehandTemp, ((float) objDistance) / 10);
 
