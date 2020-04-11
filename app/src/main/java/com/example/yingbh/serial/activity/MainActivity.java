@@ -157,20 +157,24 @@ public class MainActivity extends AppCompatActivity{
                 switch (msg.what) {
                     case UPDATE_TEMP_FLAG:
                         Log.i(TAG,String.format("额温(℃),%.2f,脸温(℃),%.2f,体温(℃),%.2f,环温(℃),%.2f", forehandTemp, faceTemp, bodyTemp, envTemp));
-                        tvTemp.setText(String.format("%.2f",bodyTemp));
+                        LogUtil.i(TAG,String.format("额温(℃),%.2f,脸温(℃),%.2f,体温(℃),%.2f,环温(℃),%.2f", forehandTemp, faceTemp, bodyTemp, envTemp));
                         tvEnvTemp.setText(String.format("%.2f",envTemp));
 
-                        String message = "";
-                        message = "额温峰值坐标：L-" + Integer.toString(forehandPosY) + "  C-" + Integer.toString(forehandPosX);
-                        tvPosition.setText(message);
-                        tvForehandTemp.setText(String.format("%.2f",forehandTemp));
+                        if(bodyTemp > 28.0f) {
+                            tvTemp.setText(String.format("%.2f",bodyTemp));
+                            String message = "";
+                            message = "额温峰值坐标：L-" + Integer.toString(forehandPosY) + "  C-" + Integer.toString(forehandPosX);
+                            tvPosition.setText(message);
+                            tvForehandTemp.setText(String.format("%.2f",forehandTemp));
+                        }
+
                         break;
                     case UPDATE_DISTANCE_FLAG:
                         Log.i(TAG,"人脸距离：" + objDistance + "mm");
                         Log.i(TAG,String.format("校准后温度(℃)：%.2f", avrCalTemp ));
 
                         tvDistance.setText(String.format("%d",objDistance));
-                        tvCalNum.setText(String.format("[%d]",calNum));
+//                        tvCalNum.setText(String.format("[%d]",calNum));
                         tvCalTemp.setText(String.format("%.1f",avrCalTemp));
                         break;
                     case DISPLAY_HOT_IMAGE_FLAG:
@@ -467,7 +471,7 @@ public class MainActivity extends AppCompatActivity{
 
     private float temp_cal(float temp, float distance)
     {
-        return (temp - fx(distance) + fx(50.00f)  + 0.7f);
+        return (temp - fx(distance) + fx(50.00f)  + 0.0f);      //默认偏置由0.7改为0  4-11
         //return fx(distance);
     }
 
