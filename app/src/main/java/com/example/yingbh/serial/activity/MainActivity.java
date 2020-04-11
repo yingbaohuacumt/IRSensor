@@ -121,7 +121,6 @@ public class MainActivity extends AppCompatActivity{
         btnClrLog = (Button) findViewById(R.id.btn_clr_log);
         tvCalTemp = (TextView)findViewById(R.id.tv_calTemp) ;
         tvCalNum = (TextView)findViewById(R.id.tv_calNum);
-        tvPosition = (TextView)findViewById(R.id.tv_position);
         tvForehandTemp = (TextView)findViewById(R.id.tv_forehand_temp);
         //热图配置
         map = findViewById(R.id.example_map);
@@ -162,9 +161,6 @@ public class MainActivity extends AppCompatActivity{
 
                         if(bodyTemp > 32.0f) {
                             tvTemp.setText(String.format("%.2f",bodyTemp));
-                            String message = "";
-                            message = "额温峰值坐标：L-" + Integer.toString(forehandPosY) + "  C-" + Integer.toString(forehandPosX);
-                            tvPosition.setText(message);
                             tvForehandTemp.setText(String.format("%.2f",forehandTemp));
                         } else {
                             tvTemp.setText("0");
@@ -262,8 +258,8 @@ public class MainActivity extends AppCompatActivity{
                                                 boolean flag = true;
                                                 int i = 1;
                                                 while (i < pointNum) {
-                                                    if( (Math.abs(tmpCalTemp[i] - tmpCalTemp[0]) < 0.3) &&
-                                                        (Math.abs(tmpDistance[i] - tmpDistance[0] ) < 30))
+                                                    if( (Math.abs(tmpCalTemp[i] - tmpCalTemp[0]) < 0.5) &&
+                                                        (Math.abs(tmpDistance[i] - tmpDistance[0] ) < 50))
 //                                                    if(Math.abs(tmpDistance[i] - tmpDistance[0] ) < 30) // 只限制距离
                                                     {
                                                          Log.i(TAG,"true");
