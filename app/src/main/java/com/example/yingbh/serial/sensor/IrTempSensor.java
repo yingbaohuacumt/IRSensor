@@ -54,6 +54,7 @@ public class IrTempSensor {
 
     public float forehandTemp = 0.0f;                   //额温
     public int forehandPosX=0,forehandPosY=0;
+    private int DROP_LINES_CNT = 5;                     //丢弃的无效数据行数
 
 
     private int OBJ_NORMAL_VALID_PIXEL = 10;             //常规场景有效像素点数目
@@ -432,8 +433,8 @@ public class IrTempSensor {
     public float foreheadTempCalc() {
         int[][] pixelValue = new int[32][32];
         int line=0,column=0,sum=0,count=0,validSum=0,validCount=0;
-        int[][] lineAverageV = new int[32][2];  //行整体平均+有效点数目
-        int[][] lineValidAverageV = new int[32][2];  //行阈值内有效点平均+有效点数目
+        int[][] lineAverageV = new int[32-DROP_LINES_CNT][2];  //行整体平均+有效点数目，剔除前5行，实际从第6行开始测温
+        int[][] lineValidAverageV = new int[32-DROP_LINES_CNT][2];  //行阈值内有效点平均+有效点数目
         int[] maxPos = new int[2];
         int centerLine = 0,centerColumn=0;      //额头峰值点坐标
         int value = 0;
@@ -451,21 +452,8 @@ public class IrTempSensor {
         }
 
         //计算每行有效平均温度并统计点数,剔除前五行（可能有错位数据）
-        for(int i=0;i<5;i++) {
-            lineAverageV[i][0] = 0;
-            lineAverageV[i][1] = 0;
-            LogUtil.d(MainActivity.class, "第" + line + "行有效点数,"+ 0 + ",整体平均温度(x10)," + 0);
-            averageValue.append(Integer.toString(0));
-            averageValue.append(",");
-
-            validAverageValue.append(Integer.toString(0));
-            validAverageValue.append(",");
-
-            validPixels.append(Integer.toString(0));
-            validPixels.append(",");
-        }
-        for(int i=5*32;i<1024;i++) {
-            line = i/32;
+        for(int i=DROP_LINES_CNT*32;i<1024;i++) {
+            line = i/32-DROP_LINES_CNT;  //剔除了5行，此处整体往前便宜
             column = i%32;
             pixelValue[line][column] = pixelListBackup.get(i) - 2731;
 
@@ -521,16 +509,17 @@ public class IrTempSensor {
             }
         }
 
-        LogUtil.d(TAG_FOREHAND,"从上往下每行阈值内有效点数目(x10)," + validPixels);
-        //        LogUtil.d(TAG_FOREHAND,"从上往下每行阈值内有效点平均温度," + validAverageValue);
-        LogUtil.d(TAG_FOREHAND,"从上往下每行去高温整体平均温度," + averageValue);
+        LogUtil.i(TAG_FOREHAND,"从上往下每行阈值内有效点数目(x10)," + validPixels);
+        LogUtil.i(TAG_FOREHAND,"从上往下每行阈值内有效点平均温度," + validAverageValue);
+        LogUtil.i(TAG_FOREHAND,"从上往下每行去高温整体平均温度," + averageValue);
 
         //额温峰值点位置计算
         maxPos = peakPositionCalc(lineAverageV);
         centerLine = maxPos[0];
-        if(centerLine == 5) {   //远离行边界
+
+        if(centerLine == 0) {   //远离行边界(已剔除5行，范围变为0~26)
             centerLine += 1;
-        } else if(centerLine == 31) {
+        } else if(centerLine == 32-DROP_LINES_CNT-1) {
             centerLine -= 1;
         }
 
@@ -568,7 +557,7 @@ public class IrTempSensor {
             //取该行极大值左右共3个点
             for(column = centerColumn-1;column < centerColumn+2;column++) {
                 validTemps.add(pixelValue[line][column]);
-                LogUtil.d(TAG_FOREHAND,"第" + line + "行,第" + column + "列,峰值点温度," + pixelValue[line][column]);
+                LogUtil.i(TAG_FOREHAND,"第" + line + "行,第" + column + "列,峰值点温度," + pixelValue[line][column]);
             }
         }
         //像素点温度降序排列
@@ -580,9 +569,9 @@ public class IrTempSensor {
         }
         temperature = (float) ((float)sum / (float)(validTemps.size()-6)) /(10 * DECAY_RATE);
 
-        LogUtil.d(TAG_FOREHAND,"额温峰值点行," + centerLine + ",列," + centerColumn + ",额温," + temperature);
+        LogUtil.i(TAG_FOREHAND,"额温峰值点行," + centerLine + ",列," + centerColumn + ",额温," + temperature);
 
-        forehandPosY = centerLine;
+        forehandPosY = centerLine+DROP_LINES_CNT;
         forehandPosX = centerColumn;
 
         return temperature;
@@ -596,15 +585,15 @@ public class IrTempSensor {
         int windowSum = 0;
         int windowPointGate = windowLen*5;  //窗口有效点数门限值
         int windowPointNum = 0;     //窗口有效像素点数目
-        int[] pixelSum = new int[32-windowLen+1];
-        int[] pointsSum = new int[32-windowLen+1];
+        int[] pixelSum = new int[32-DROP_LINES_CNT-windowLen+1];
+        int[] pointsSum = new int[32-DROP_LINES_CNT-windowLen+1];
         int[] maxPos = new int[2];      //第1、2个峰值行
         int value = 0;
         StringBuilder windowValue = new StringBuilder("");
 
         LogUtil.d(MainActivity.class,"窗口大小：" + windowLen);
         //计算每个滑动窗口内的和值
-        for(int i=0;i<32-windowLen+1;i++) {
+        for(int i=0;i<32-DROP_LINES_CNT-windowLen+1;i++) {
             windowSum = 0;
             windowPointNum = 0;
             for(int j=0;j<windowLen;j++) {
@@ -621,7 +610,7 @@ public class IrTempSensor {
 
         //查找第一个窗口和值最大的位置(额头)
         int i=0;
-        for(i=0;i<32-windowLen;i++) {
+        for(i=0;i<32-DROP_LINES_CNT-windowLen;i++) {
             if(value <= pixelSum[i]) {
                 value = pixelSum[i];
                 //判断是否大于后一个窗口值,且有效点数满足要求，是则为第一个窗口峰值
@@ -635,9 +624,9 @@ public class IrTempSensor {
 
         //查找第二个窗口和值最大位置（嘴巴）
         i += 5;     //尝试跳至口腔附近
-        if(i<32-windowLen) {
+        if(i<32-DROP_LINES_CNT-windowLen) {
             value = 0;
-            for(;i<32-windowLen;i++) {
+            for(;i<DROP_LINES_CNT-windowLen;i++) {
                 if(value <= pixelSum[i]) {
                     value = pixelSum[i];
                     if(value>pixelSum[i+1] && pointsSum[i]>=windowPointGate) {

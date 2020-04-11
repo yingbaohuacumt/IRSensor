@@ -157,11 +157,11 @@ public class MainActivity extends AppCompatActivity{
                 switch (msg.what) {
                     case UPDATE_TEMP_FLAG:
                         Log.i(TAG,String.format("额温(℃),%.2f,脸温(℃),%.2f,体温(℃),%.2f,环温(℃),%.2f", forehandTemp, faceTemp, bodyTemp, envTemp));
+                        LogUtil.i(TAG,String.format("额温(℃),%.2f,脸温(℃),%.2f,体温(℃),%.2f,环温(℃),%.2f", forehandTemp, faceTemp, bodyTemp, envTemp));
+                        tvEnvTemp.setText(String.format("%.2f",envTemp));
 
-                        if(bodyTemp > 33.0f) {
+                        if(bodyTemp > 32.0f) {
                             tvTemp.setText(String.format("%.2f",bodyTemp));
-                            tvEnvTemp.setText(String.format("%.2f",envTemp));
-
                             String message = "";
                             message = "额温峰值坐标：L-" + Integer.toString(forehandPosY) + "  C-" + Integer.toString(forehandPosX);
                             tvPosition.setText(message);
@@ -177,7 +177,7 @@ public class MainActivity extends AppCompatActivity{
                         Log.i(TAG,String.format("校准后温度(℃)：%.2f", avrCalTemp ));
 
                         tvDistance.setText(String.format("%d",objDistance));
-                        tvCalNum.setText(String.format("[%d]",calNum));
+//                        tvCalNum.setText(String.format("[%d]",calNum));
                         tvCalTemp.setText(String.format("%.1f",avrCalTemp));
                         break;
                     case DISPLAY_HOT_IMAGE_FLAG:
@@ -234,19 +234,19 @@ public class MainActivity extends AppCompatActivity{
                                         }
 
                                         if(objDistance < 1200) {
-//                                            // 原始温度数据打印
-//                                            StringBuilder pixelBuff= new StringBuilder("");
-//                                            pixelBuff.append("原始温度数据点数:"+irTempSensor.pixelListBackup.size()+"\r\n");
-//                                            for(int num = 0; num < irTempSensor.pixelListBackup.size(); num++){
-//                                                if(num%32 == 0){
-//                                                    pixelBuff= new StringBuilder("");
-//                                                    pixelBuff.append("\r\n"+(num)+"-"+(num+31)+":");
-//                                                }
-//                                                pixelBuff.append(String.format(",%d",irTempSensor.pixelListBackup.get(num)));
-//                                                if((num+1)%32 == 0)  {
-//                                                    LogUtil.i("",pixelBuff.toString());
-//                                                }
-//                                            }
+                                            // 原始温度数据打印
+                                            StringBuilder pixelBuff= new StringBuilder("");
+                                            pixelBuff.append("原始温度数据点数:"+irTempSensor.pixelListBackup.size()+"\r\n");
+                                            for(int num = 4*32; num < irTempSensor.pixelListBackup.size(); num++){
+                                                if(num%32 == 0){
+                                                    pixelBuff= new StringBuilder("");
+                                                    pixelBuff.append("\r\n"+(num)+"-"+(num+31)+":");
+                                                }
+                                                pixelBuff.append(String.format(",%d",irTempSensor.pixelListBackup.get(num)));
+                                                if((num+1)%32 == 0)  {
+                                                    LogUtil.i("",pixelBuff.toString());
+                                                }
+                                            }
 
                                             calTemp = temp_cal(forehandTemp, ((float) objDistance) / 10);
 
@@ -474,7 +474,7 @@ public class MainActivity extends AppCompatActivity{
 
     private float temp_cal(float temp, float distance)
     {
-        return (temp - fx(distance) + fx(50.00f)  + 0.7f);
+        return (temp - fx(distance) + fx(50.00f)  + 0.0f);      //默认偏置由0.7改为0  4-11
         //return fx(distance);
     }
 
