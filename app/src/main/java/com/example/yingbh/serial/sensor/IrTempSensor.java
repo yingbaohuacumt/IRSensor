@@ -40,7 +40,7 @@ public class IrTempSensor {
      */
     public float DECAY_RATE = 0.954f;               //默认红外衰减率0.96 -> 0.954
 
-    private final int BACK_TEMP = 2731;             //本底温度
+    public final int BACK_TEMP = 2731;             //本底温度
     private final int HUMAN_TEMP_MAX = 42;          //人体温度上限
     private final int HUMAN_TEMP_MIN = 32;          //人体温度上限
     private final int ENV_GATE = 32;           //环境温度门限，使用方法：(ENV_TEMP_GATE,HUMAN_TEMP_MAX)区间内像素点数>50，说明有人体热源接近，不记录环境温度

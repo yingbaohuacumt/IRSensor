@@ -173,7 +173,7 @@ public class MainActivity extends AppCompatActivity{
                         Log.i(TAG,String.format("校准后温度(℃)：%.2f", avrCalTemp ));
 
                         tvDistance.setText(String.format("%d",objDistance));
-//                        tvCalNum.setText(String.format("[%d]",calNum));
+                        tvCalNum.setText(String.format("[%d]",calNum));
                         tvCalTemp.setText(String.format("%.1f",avrCalTemp));
                         break;
                     case DISPLAY_HOT_IMAGE_FLAG:
@@ -238,7 +238,7 @@ public class MainActivity extends AppCompatActivity{
                                                     pixelBuff= new StringBuilder("");
                                                     pixelBuff.append("\r\n"+(num)+"-"+(num+31)+":");
                                                 }
-                                                pixelBuff.append(String.format(",%d",irTempSensor.pixelListBackup.get(num)));
+                                                pixelBuff.append(String.format(",%d",(irTempSensor.pixelListBackup.get(num)-irTempSensor.BACK_TEMP)));
                                                 if((num+1)%32 == 0)  {
                                                     LogUtil.i("",pixelBuff.toString());
                                                 }
@@ -254,46 +254,32 @@ public class MainActivity extends AppCompatActivity{
                                             LogUtil.i(TAG, String.format("-----------------------%d\r\n", calNum));
 
                                             calNum++;
-                                            if (calNum >= pointNum) {
-                                                boolean flag = true;
-                                                int i = 1;
-                                                while (i < pointNum) {
-                                                    if( (Math.abs(tmpCalTemp[i] - tmpCalTemp[0]) < 0.5) &&
-                                                        (Math.abs(tmpDistance[i] - tmpDistance[0] ) < 50))
-//                                                    if(Math.abs(tmpDistance[i] - tmpDistance[0] ) < 30) // 只限制距离
-                                                    {
-                                                         Log.i(TAG,"true");
+                                            if(calNum >= 2) {
+                                                //与第一次数据比较，偏差过大则丢弃
+                                                try{
+                                                    if((Math.abs(tmpCalTemp[calNum-1] - tmpCalTemp[0]) > 0.5) || (Math.abs(tmpDistance[calNum-1] - tmpDistance[0] ) > 80)) {
+                                                        calNum = 0;
+                                                        Log.i("SensorData","drop data!");
                                                     }
-                                                    else{
-                                                        flag = false;
-                                                       // Log.i(TAG,"false");
-                                                        break;
-                                                    }
-                                                    i++;
+                                                } catch (Exception e) {
+                                                    e.printStackTrace();
                                                 }
+                                            }
+                                            if (calNum >= pointNum) {
+                                                StringBuilder caltempList = new StringBuilder("");
+                                                StringBuilder distanceList = new StringBuilder("");
+                                                StringBuilder avrBuff = new StringBuilder("");
 
-                                                if (flag == true) {
-                                                    // 剔除最大值温度和最小值温度，然后取平均温度和距离
-//                                                int minNum = 0, maxNum = 0;
-//                                                float minTemp = tmpCalTemp[0];
-//                                                float maxTemp = tmpCalTemp[0];
-//                                                for(int j = 1; j < pointNum;j++){   // 查找最大和最小值
-//                                                    if(tmpCalTemp[j] < minTemp){
-//                                                        minTemp = tmpCalTemp[j];
-//                                                        minNum = j;
-//                                                    }
-//                                                    if(tmpCalTemp[j] >maxTemp){
-//                                                        maxTemp = tmpCalTemp[j];
-//                                                        maxNum = j;
-//                                                    }
-//                                                }
-                                                    StringBuilder caltempList = new StringBuilder("");
-                                                    StringBuilder distanceList = new StringBuilder("");
-                                                    StringBuilder avrBuff = new StringBuilder("");
+                                                // 计算平均值
+                                                avrCalTemp = calFloatSumAverage(tmpCalTemp, pointNum);
+                                                avrDistance = calIntFloatSumAverage(tmpDistance, pointNum);
+                                                avrBuff.append(String.format(",%d次取平均：平均距离(mm),%d,平均温度(℃),%.1f,",pointNum, avrDistance, avrCalTemp));
 
-                                                    // 计算平均值
-                                                    avrCalTemp = calFloatSumAverage(tmpCalTemp, pointNum);
-                                                    avrDistance = calIntFloatSumAverage(tmpDistance, pointNum);
+                                                Log.i("SensorData", avrBuff.toString());
+                                                Log.i("SensorData", buff1.toString());
+
+                                                LogUtil.i(MainActivity.class, avrBuff.toString());
+                                                LogUtil.i(MainActivity.class, buff1.toString());
 
 //                                                caltempList.append(String.format(",温度最大点位置,%d,最小点位置,%d,数据->,%.2f,%.2f,%.2f,%.2f,%.2f",
 //                                                        maxNum,minNum,tmpCalTemp[0],tmpCalTemp[1],tmpCalTemp[2],tmpCalTemp[3],tmpCalTemp[4]));
@@ -303,24 +289,13 @@ public class MainActivity extends AppCompatActivity{
 //                                                Log.i(TAG,distanceList.toString());
 //                                                LogUtil.i(MainActivity.class,caltempList.toString());
 //                                                LogUtil.i(MainActivity.class,distanceList.toString());
-
+//
 //                                                float avrCalTemp2 = calFloatSumAverage_x(tmpCalTemp,pointNum, tmpCalTemp[minNum],tmpCalTemp[maxNum]) ;
 //                                                int avrDistance2 = avrDistance = calIntFloatSumAverage_x(tmpDistance,pointNum,tmpDistance[minNum],tmpDistance[maxNum]);
-
+//
 //                                                avrBuff.append(String.format(",平均距离(mm),%d,平均温度(℃),%.2f,平均距离2(mm),%d,平均温度2(℃),%.2f,",
 //                                                avrDistance,avrCalTemp,avrDistance2,avrCalTemp2));
 
-                                                    avrBuff.append(String.format(",%d次取平均：平均距离(mm),%d,平均温度(℃),%.1f,",pointNum, avrDistance, avrCalTemp));
-
-                                                    Log.i(TAG, avrBuff.toString());
-                                                    Log.i(TAG, buff1.toString());
-
-                                                    LogUtil.i(MainActivity.class, avrBuff.toString());
-                                                    LogUtil.i(MainActivity.class, buff1.toString());
-
-                                                } else {
-                                                    //Log.i(TAG, "-----fail ");
-                                                }
                                                 calNum = 0;
                                                 buff1 = new StringBuilder("");
 
